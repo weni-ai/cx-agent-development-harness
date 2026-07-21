@@ -1,0 +1,25 @@
+# Virtual environment
+.venv/
+
+# Local secrets for tool testing (never commit)
+**/.env
+**/.globals
+
+# Harnesses
+# .cursor/
+# .claude/
+# AGENTS.md
+# CLAUDE.md
+# HARNESS-SYNC.md
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# OS
+.DS_Store
+
+# Local testing
+*.zip
+**/test-results.md

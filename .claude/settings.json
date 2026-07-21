@@ -1,0 +1,6 @@
+{
+  "$comment": "Claude Code harness config for the Weni agent development harness. Edits happen in place at the project root (git handles versioning), so background isolation is disabled. Keep this directory in sync with the Cursor harness (.cursor) per the sync rules in CLAUDE.md / AGENTS.md.",
+  "worktree": {
+    "bgIsolation": "none"
+  }
+}
