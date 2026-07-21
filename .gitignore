@@ -6,11 +6,11 @@
 **/.globals
 
 # Harnesses
-# .cursor/
-# .claude/
-# AGENTS.md
-# CLAUDE.md
-# HARNESS-SYNC.md
+.cursor/
+.claude/
+AGENTS.md
+CLAUDE.md
+HARNESS-SYNC.md
 
 # Python
 __pycache__/
