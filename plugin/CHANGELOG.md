@@ -5,6 +5,8 @@ Breaking / New / Changed / Fixed. Versions follow semver.
 
 ## Unreleased
 
+## 2.1.1 — 2026-10-07
+
 ### Fixed
 - Schema validation and tool tests work when called with the system `python3`
   (they failed with "PyYAML is required" before switching to the project `.venv`).
