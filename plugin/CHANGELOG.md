@@ -5,12 +5,17 @@ Breaking / New / Changed / Fixed. Versions follow semver.
 
 ## Unreleased
 
+### Changed
+- `/weni:new-agent` is now `/weni:setup <description>`: in a new folder it installs
+  `weni-cli` into `.venv` and adds `.gitignore` entries by itself, stopping only for
+  the Weni login and project choice, then builds the agent.
+
 ## 2.0.0 — 2026-10-07
 
 ### Breaking
 - Distributed as a Claude Code plugin (`/plugin install weni@weni-ai`) instead of a
-  template copied into each project. Commands are now `/weni:setup`,
-  `/weni:edit-agent`, `/weni:status`. Runs live in `.harness/runs/`.
+  template copied into each project. Commands are now `/weni:new-agent`,
+  `/weni:edit-agent`, `/weni:status`, `/weni:setup`. Runs live in `.harness/runs/`.
 - Cursor edition paused; this version targets Claude Code only.
 
 ### New
@@ -19,9 +24,7 @@ Breaking / New / Changed / Fixed. Versions follow semver.
 - Eval loop with triage: each failure is classified as real bug, instruction gap,
   overly strict test, or flaky, with a confidence level. Max 3 rounds; relaxing a
   test always needs your approval.
-- One command to start: `/weni:setup <description>` prepares a new folder by itself
-  (installs `weni-cli` into `.venv`, adds `.gitignore` entries), stopping only for
-  the Weni login and project choice, then builds the agent.
+- `/weni:setup` prepares any folder: `.venv`, `weni-cli`, and `.gitignore` entries.
 
 ### Changed
 - Eval tests are written around facts (data, tool use, guardrails), not wording.
