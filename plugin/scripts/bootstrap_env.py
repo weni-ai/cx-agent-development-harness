@@ -1,5 +1,8 @@
 """Prepare the user's project: .venv with weni-cli, a safe .gitignore, then the readiness gate.
 
+init_run.py calls these helpers automatically on the first run in a folder; running
+this script directly is only needed to repair or upgrade the environment.
+
 Never runs `weni login` (interactive browser OAuth); the readiness gate tells the
 user the exact command instead.
 

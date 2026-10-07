@@ -4,8 +4,10 @@ Creates a new run directory with a fresh STATE.md (all phases pending), an empty
 artifacts folder, and a logs folder. With --latest-open it instead resolves the
 most recent run that still has open phases, enabling cross-session resume.
 
-Creating a run is gated: it refuses (with the gate's exit code) unless the Weni
-CLI is READY (installed, logged in, project selected). See check_ready.py.
+Creating a run prepares the folder first, so a new project needs no setup step:
+it adds the harness entries to .gitignore and, on first use, creates .venv and
+installs weni-cli. It then refuses (with the gate's exit code) unless the Weni CLI
+is READY (logged in, project selected). See check_ready.py.
 
 Usage:
     python3 ${CLAUDE_PLUGIN_ROOT}/scripts/init_run.py "build order lookup agent" --target order-bot
@@ -29,7 +31,8 @@ from _common import (
     save_state,
     slugify,
 )
-from check_ready import ensure_ready
+from bootstrap_env import ensure_gitignore, ensure_venv, install_cli
+from check_ready import ensure_ready, probe
 
 
 def build_initial_state(run_id: str, feature: str, mode: str, target: str | None) -> dict:
@@ -96,6 +99,11 @@ def main() -> None:
     if not args.description:
         parser.error("a feature description is required when not using --latest-open")
 
+    ensure_gitignore()
+    if probe(validate_token=False)[0] == "NOT_INSTALLED":
+        print("First run in this folder: installing weni-cli into .venv (about 1 minute) ...", flush=True)
+        ensure_venv()
+        install_cli()
     ensure_ready()
     print(create_run(args.description, args.mode, args.target))
 

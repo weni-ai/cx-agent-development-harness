@@ -24,12 +24,9 @@ contact) MUST also be in English, unless the user explicitly requests another lo
 
 ## Project Bootstrap and Auth
 
-Every pipeline is gated on a deterministic readiness check (no LLM tokens):
-
-```bash
-/weni:setup     # creates .venv, installs weni-cli, then checks readiness
-/weni:status    # re-check at any time
-```
+Every pipeline is gated on a deterministic readiness check (no LLM tokens). The
+first `/weni:setup` in a folder installs weni-cli into `.venv` and adds the
+`.gitignore` entries automatically; `/weni:status` re-checks at any time.
 
 The gate (`${CLAUDE_PLUGIN_ROOT}/scripts/check_ready.py`) returns `READY`, `AUTH_REQUIRED`,
 `PROJECT_NOT_SELECTED`, `PROBE_ERROR`, or `NOT_INSTALLED`, each with the exact fix.

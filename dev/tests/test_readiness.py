@@ -65,3 +65,9 @@ class RunCreation(HarnessProject):
         run_dir = self.new_run()
         self.assertEqual(self.state(run_dir)["target"], "demo")
         self.assertTrue((run_dir / "STATE.md").exists())
+
+
+class FolderPreparation(HarnessProject):
+    def test_init_run_adds_gitignore_entries(self):
+        self.new_run()
+        self.assertIn(".harness/", (self.root / ".gitignore").read_text())

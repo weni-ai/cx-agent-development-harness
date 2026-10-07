@@ -32,26 +32,28 @@ Always run the scripts from the project root.
 |------|------|
 | `agents/<slug>/` | One collaborator agent = one deploy unit (`agent_definition.yaml`, `tools/`, `agent_evaluation.yml`, `README.md`) |
 | `.harness/runs/<run-id>/` | `STATE.md` (live), `artifacts/` (one file per phase), `logs/` |
-| `.venv/` | Project virtualenv with `weni-cli` (created by `/weni:setup`) |
+| `.venv/` | Project virtualenv with `weni-cli` (created automatically on the first run) |
 
 Every run targets exactly one collaborator (`--target <slug>`; optional when only one
 exists). Never pack several agents into one definition.
 
 ## Start
 
-1. **Readiness gate.** `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/check_ready.py"`. Unless it prints `READY`, stop and
-   give the user the fix it prints:
-   - `NOT_INSTALLED` → run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/bootstrap_env.py"` yourself, then re-check.
+1. **Resume.** `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/init_run.py" --latest-open`. If it
+   prints a run dir, read its `STATE.md` and continue from the first
+   `pending`/`in-progress` phase.
+2. **New work.** List `agents/`. If the request is ambiguous, ask whether to edit an
+   existing collaborator (which) or create a new one (pick a short kebab-case slug).
+   Then run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/init_run.py" "<feature>" --target <slug> --mode <new|edit>`.
+   In a new folder it sets everything up by itself (.gitignore, `.venv`, weni-cli;
+   tell the user the first time takes about a minute), then applies the readiness
+   gate. If it does not print a run dir, resolve what it printed and run it again:
    - `AUTH_REQUIRED` → ask the user to type `! .venv/bin/weni login` (browser OAuth).
      Never run it yourself.
    - `PROJECT_NOT_SELECTED` → run `printf 'q\n' | .venv/bin/weni project list`, ask
-     the user which project, run `.venv/bin/weni project use <uuid>`, re-check.
-   No pipeline starts until `READY`; `init_run.py` refuses otherwise.
-2. **Resume.** `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/init_run.py" --latest-open`. If it prints a run dir, read its
-   `STATE.md` and continue from the first `pending`/`in-progress` phase.
-3. **New work.** List `agents/`. If the request is ambiguous, ask whether to edit an
-   existing collaborator (which) or create a new one (pick a short kebab-case slug).
-   Then: `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/init_run.py" "<feature>" --target <slug> --mode <new|edit>`.
+     the user which project, run `.venv/bin/weni project use <uuid>`.
+   - `PROBE_ERROR` / install failure → show the output to the user.
+   No pipeline starts until the run exists.
 
 ## Phases
 

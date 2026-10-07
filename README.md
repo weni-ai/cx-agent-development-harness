@@ -23,12 +23,16 @@ Then turn on updates: `/plugin` → **Marketplaces** → `weni-ai` → **Enable 
 
 ## Build your first agent
 
-1. Create or open the folder for your project and start `claude` there.
-2. `/weni:setup` — creates `.venv`, installs `weni-cli`, adds `.gitignore` entries,
-   and checks your login. If asked, type `! .venv/bin/weni login` (opens your browser).
-3. `/weni:new-agent An agent that tells customers the status of their order by ID`
+Create or open the folder for your project, start `claude` there, and type:
 
-Nothing starts until the Weni login and project selection are **READY**.
+```
+/weni:setup An agent that tells customers the status of their order by ID
+```
+
+The first time in a folder it sets everything up by itself (`.venv`, `weni-cli`,
+`.gitignore`; about a minute). It only stops for two things you must do yourself:
+log in to Weni once per computer (`! .venv/bin/weni login`, opens your browser) and
+pick which Weni project to use.
 
 ## What happens next
 
@@ -56,10 +60,9 @@ cd agents/<slug> && ../../.venv/bin/weni project push agent_definition.yaml
 
 | Command | Does |
 |---------|------|
-| `/weni:new-agent <description>` | Build a new collaborator agent |
+| `/weni:setup <description>` | Prepare the folder (first time) and build a new collaborator agent |
 | `/weni:edit-agent <slug> <change>` | Change an existing agent (copy its files to `agents/<slug>/` first) |
 | `/weni:status` | Readiness, open run, agents, and plugin version |
-| `/weni:setup` | Prepare the folder and check the login |
 
 Ask for "the project README" to get a root README describing all your agents.
 
@@ -67,7 +70,7 @@ Ask for "the project README" to get a root README describing all your agents.
 
 | Message | Fix |
 |---------|-----|
-| `NOT_INSTALLED` | `/weni:setup` |
+| `NOT_INSTALLED` | Normal in a new folder: `/weni:setup` installs everything |
 | `AUTH_REQUIRED` | `! .venv/bin/weni login` |
 | `PROJECT_NOT_SELECTED` | Claude lists your projects and asks which one to use |
 | Eval keeps failing | Read the triage table: it separates real bugs from overly strict tests |

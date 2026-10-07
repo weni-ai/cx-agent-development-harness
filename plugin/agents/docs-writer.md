@@ -81,8 +81,8 @@ architecture diagram, which you leave as an empty placeholder for the user. Sect
    ```
 3. **`## Collaborators`** — table generated from `agents/*/`: slug · one-line purpose
    · link to its README (`agents/<slug>/README.md`).
-4. **`## Setup`** — `/weni:setup` in Claude Code (creates `.venv`, installs `weni-cli`), then
-   `.venv/bin/weni login` if asked.
+4. **`## Setup`** — install the `weni` Claude Code plugin; the first `/weni:setup`
+   creates `.venv` and installs `weni-cli`; run `.venv/bin/weni login` if asked.
 5. **`## Deploy`** — push per collaborator:
    `cd agents/<slug> && weni project push agent_definition.yaml`.
 

@@ -10,7 +10,7 @@ States (exit code):
     AUTH_REQUIRED        10   user must run `weni login`
     PROJECT_NOT_SELECTED 11   user must run `weni project use <uuid>`
     PROBE_ERROR          12   the CLI answered something unexpected (output shown)
-    NOT_INSTALLED        20   .venv or weni-cli missing -> `/weni:setup`
+    NOT_INSTALLED        20   .venv or weni-cli missing (init_run.py installs it)
 
 Usage:
     python3 ${CLAUDE_PLUGIN_ROOT}/scripts/check_ready.py
@@ -44,7 +44,8 @@ FIXES = {
     "then `.venv/bin/weni project use <project-uuid>`.",
     "PROBE_ERROR": "The Weni CLI returned an unexpected answer (see output below). "
     "Run `/weni:status` to see it again.",
-    "NOT_INSTALLED": "Install the environment first: run `/weni:setup`.",
+    "NOT_INSTALLED": "This folder is not set up for Weni yet; `/weni:setup` sets it up "
+    "automatically (installs weni-cli, about 1 minute).",
 }
 
 # Substrings (lowercase) in the CLI output. Tune them here if the CLI wording
