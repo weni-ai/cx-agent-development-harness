@@ -1,7 +1,7 @@
 {
   "name": "weni",
   "displayName": "Weni Agent Harness",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "description": "Build, test, review, and document VTEX CX Platform (Weni) AI agents through a gated pipeline: plan approval, login gate, tool tests, eval with failure triage, independent review.",
   "author": {
     "name": "VTEX CX Platform"

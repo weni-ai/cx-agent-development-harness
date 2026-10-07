@@ -5,6 +5,8 @@ Breaking / New / Changed / Fixed. Versions follow semver.
 
 ## Unreleased
 
+## 2.1.0 — 2026-10-07
+
 ### Changed
 - `/weni:setup` again only prepares the project (once, optional) and
   `/weni:new-agent <description>` builds each agent, setting the folder up itself
