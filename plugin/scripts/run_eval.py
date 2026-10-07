@@ -5,15 +5,25 @@ failures) inside `agents/<target>/` and writes `<RUN_DIR>/artifacts/03-eval-run-
 plus `logs/03-eval-run-<N>.log`. It never touches `03-tests.md`, which belongs to
 the tester and holds the triage.
 
-Full rounds (no --filter) are capped by --max-rounds so the eval loop always ends;
-filtered re-runs (flakiness checks) do not count toward the cap.
+`weni eval` talks to the agent DEPLOYED in the selected project, never to the local
+files. So before running, it checks the harness deployment record (deploy.py) and
+refuses with EVAL_NOT_DEPLOYED (never pushed to this project) or
+EVAL_STALE_DEPLOYMENT (local deployable files changed since the push). `--check`
+only reports that status (EVAL_READY when deployed and current).
 
-Prints one of: EVAL_PASS, EVAL_FAIL, EVAL_TIMEOUT, EVAL_ROUND_LIMIT.
+Full rounds (no --filter) are capped by --max-rounds so the eval loop always ends;
+filtered re-runs (flakiness checks) do not count toward the cap. `--void-last`
+discards the latest round (e.g. the target agent never handled the conversation)
+so it does not count either.
+
+Prints one of: EVAL_PASS, EVAL_FAIL, EVAL_TIMEOUT, EVAL_ROUND_LIMIT,
+EVAL_NOT_DEPLOYED, EVAL_STALE_DEPLOYMENT, EVAL_READY, EVAL_ROUND_VOIDED.
 
 Usage:
     python3 ${CLAUDE_PLUGIN_ROOT}/scripts/run_eval.py --run-dir <dir>
     python3 ${CLAUDE_PLUGIN_ROOT}/scripts/run_eval.py --latest --filter "greeting"
-    python3 ${CLAUDE_PLUGIN_ROOT}/scripts/run_eval.py --run-dir <dir> --max-rounds 5
+    python3 ${CLAUDE_PLUGIN_ROOT}/scripts/run_eval.py --run-dir <dir> --check
+    python3 ${CLAUDE_PLUGIN_ROOT}/scripts/run_eval.py --run-dir <dir> --void-last "Manager answered, not the agent"
 """
 
 from __future__ import annotations
@@ -25,13 +35,15 @@ from datetime import datetime
 from pathlib import Path
 
 # Local
-from _common import agent_dir, latest_open_run, load_state, venv_bin
-from check_ready import ensure_ready
+from _common import agent_dir, deployment_status, latest_open_run, load_state, venv_bin
+from check_ready import current_project, ensure_ready
 
 DEFAULT_MAX_ROUNDS = 3
 DEFAULT_TIMEOUT_SECONDS = 1200
 FAILURE_MARKERS = ("Traceback (most recent call last)",)
 EXIT_ROUND_LIMIT = 3
+EXIT_NOT_DEPLOYED = 4
+EXIT_STALE = 5
 
 
 def resolve_run_dir(args: argparse.Namespace) -> Path:
@@ -63,19 +75,46 @@ def main() -> None:
     parser.add_argument("--filter", help="Only run matching tests (flakiness re-check).")
     parser.add_argument("--max-rounds", type=int, default=DEFAULT_MAX_ROUNDS, help="Cap on full rounds.")
     parser.add_argument("--timeout", type=int, default=DEFAULT_TIMEOUT_SECONDS, help="Seconds before aborting.")
+    parser.add_argument("--check", action="store_true", help="Only report the deployment status.")
+    parser.add_argument("--void-last", metavar="REASON", help="Discard the latest round so it does not count.")
     args = parser.parse_args()
 
     run_dir = resolve_run_dir(args)
     artifacts = run_dir / "artifacts"
     existing = previous_runs(artifacts)
+
+    if args.void_last:
+        if not existing:
+            raise SystemExit("No eval round to void.")
+        latest = existing[-1]
+        voided, suffix = latest.with_name(latest.name.replace("03-eval-run-", "03-eval-void-")), 2
+        while voided.exists():  # the same round number can be voided more than once
+            voided, suffix = latest.with_name(latest.stem.replace("03-eval-run-", "03-eval-void-") + f"-{suffix}.md"), suffix + 1
+        voided.write_text(latest.read_text(encoding="utf-8") + f"\n## Voided\n\n{args.void_last}\n", encoding="utf-8")
+        latest.unlink()
+        print("EVAL_ROUND_VOIDED")
+        print(f"Artifact: {voided}")
+        return
+
+    ensure_ready()
+    target = args.target or load_state(run_dir).get("target")
+    deployment = deployment_status(target, current_project())
+    if deployment != "DEPLOYED":
+        status = "EVAL_NOT_DEPLOYED" if deployment == "NOT_DEPLOYED" else "EVAL_STALE_DEPLOYMENT"
+        print(status)
+        print("`weni eval` tests the agent deployed in the selected project, not the local files. "
+              + ("This collaborator was never pushed to this project by the harness."
+                 if deployment == "NOT_DEPLOYED" else "Local deployable files changed since the last push."))
+        raise SystemExit(EXIT_NOT_DEPLOYED if deployment == "NOT_DEPLOYED" else EXIT_STALE)
+    if args.check:
+        print("EVAL_READY")
+        return
     full_rounds = sum(1 for path in existing if is_full_round(path))
     if not args.filter and full_rounds >= args.max_rounds:
         print("EVAL_ROUND_LIMIT")
         print(f"{full_rounds} full eval rounds already ran (cap {args.max_rounds}). Ask the user how to proceed.")
         raise SystemExit(EXIT_ROUND_LIMIT)
 
-    ensure_ready()
-    target = args.target or load_state(run_dir).get("target")
     command = [str(venv_bin("weni")), "eval", "run", "--verbose"]
     if args.filter:
         command += ["--filter", args.filter]

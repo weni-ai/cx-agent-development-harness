@@ -8,6 +8,7 @@ the individual scripts (init_run, update_state, run_eval, etc.).
 from __future__ import annotations
 
 # Standard library
+import hashlib
 import json
 import os
 import re
@@ -95,6 +96,55 @@ def resolve_agent_dir(slug: str | None = None) -> Path:
 def agent_dir(slug: str | None = None) -> Path:
     """Backward-compatible alias that resolves a single collaborator folder."""
     return resolve_agent_dir(slug)
+
+
+# Files that change what the deployed agent does. Edits to tests, eval plans, docs,
+# or local secrets do not require a redeploy.
+DEPLOYABLE_PATTERNS = ("agent_definition.yaml", "requirements.txt", "tools/**/*.py", "tools/**/requirements.txt")
+
+
+def deployable_hash(slug: str | None) -> str:
+    """Return a fingerprint of the files that `weni project push` uploads for an agent."""
+    root = agent_dir(slug)
+    digest = hashlib.sha256()
+    files = sorted({path for pattern in DEPLOYABLE_PATTERNS for path in root.glob(pattern) if path.is_file()})
+    for path in files:
+        if "__pycache__" in path.parts:
+            continue
+        digest.update(path.relative_to(root).as_posix().encode())
+        digest.update(path.read_bytes())
+    return digest.hexdigest()
+
+
+def deployments_path() -> Path:
+    """Return the file where the harness records what it pushed, per collaborator."""
+    return project_root() / ".harness" / "deployments.json"
+
+
+def load_deployments() -> dict:
+    """Load the deployment records ({slug: {project, hash, pushed_at}})."""
+    path = deployments_path()
+    return json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+
+
+def record_deployment(slug: str, project: str) -> None:
+    """Record that `slug`, as it is on disk now, is deployed to `project`."""
+    records = load_deployments()
+    records[slug] = {
+        "project": project,
+        "hash": deployable_hash(slug),
+        "pushed_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    }
+    deployments_path().parent.mkdir(parents=True, exist_ok=True)
+    deployments_path().write_text(json.dumps(records, indent=2), encoding="utf-8")
+
+
+def deployment_status(slug: str, project: str) -> str:
+    """Return DEPLOYED, NOT_DEPLOYED (never pushed here), or STALE (local changes since)."""
+    record = load_deployments().get(slug)
+    if not record or record["project"] != project:
+        return "NOT_DEPLOYED"
+    return "DEPLOYED" if record["hash"] == deployable_hash(slug) else "STALE"
 
 
 def venv_bin(name: str) -> Path:

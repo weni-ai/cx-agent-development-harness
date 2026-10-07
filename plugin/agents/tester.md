@@ -47,8 +47,18 @@ input and expected outcome.
 ## Mode B — Triage an eval round
 
 The orchestrator ran `run_eval.py`; read the latest `03-eval-run-<N>.md` (it includes
-the judge's reasoning) plus earlier rounds for comparison. For EVERY failed test,
-compare what the test expected with what the agent actually answered, then classify:
+the judge's reasoning) plus earlier rounds for comparison. `weni eval` talks to the
+agent deployed in the Weni project, routed by that project's Manager.
+
+**First, check who answered.** If the responses come from the Manager or from other
+collaborators (e.g. "I can only help with X, Y, Z", capabilities this agent does not
+have, no sign this agent's tools ran), classify the round `NOT_HANDLED_BY_TARGET` and
+stop: do not classify individual tests, propose no code or instruction changes. Note
+the likely causes for the user: not deployed / stale deployment, or the Manager does
+not route to it (its `description` may be too weak for routing).
+
+Otherwise, for EVERY failed test compare what the test expected with what the agent
+actually answered, then classify:
 
 | Class | Meaning | Next action |
 |-------|---------|-------------|
@@ -56,6 +66,7 @@ compare what the test expected with what the agent actually answered, then class
 | `INSTRUCTION_GAP` | Requirement is legitimate but the agent's instructions don't make it happen reliably | implementer adjusts `instructions` |
 | `OVERSPECIFIED_TEST` | The answer is correct for the user; the test demands a minor detail or wording | propose a relaxed criterion — user must approve |
 | `FLAKY` | Contradicts an earlier round or looks nondeterministic | orchestrator re-runs with `--filter <test>` |
+| `NOT_HANDLED_BY_TARGET` | Whole round: the target agent never handled the conversation | round voided, nothing sent to the implementer, user decides |
 
 For each failure give: test name, class, **confidence** (high/medium/low) that the
 rejection is legitimate, one line of evidence (expected vs. actual, quoted), and the

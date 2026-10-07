@@ -21,6 +21,8 @@ with open(os.environ["FAKE_WENI_LOG"], "a") as log:
 key = {{"project": "PROJECT", "run": "RUN", "eval": "EVAL"}}.get(args[0] if args else "", "OTHER")
 if args[:2] == ["project", "list"]:
     key = "LIST"
+if args[:2] == ["project", "push"]:
+    key = "PUSH"
 time.sleep(float(os.environ.get("FAKE_" + key + "_SLEEP", "0")))
 sys.stdout.write(os.environ.get("FAKE_" + key + "_OUT", ""))
 sys.exit(int(os.environ.get("FAKE_" + key + "_RC", "0")))

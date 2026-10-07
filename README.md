@@ -26,13 +26,15 @@ Then turn on updates: `/plugin` → **Marketplaces** → `weni-ai` → **Enable 
 Create or open the folder for your project, start `claude` there, and type:
 
 ```
-/weni:setup An agent that tells customers the status of their order by ID
+/weni:setup                                                           # once per project (optional)
+/weni:new-agent An agent that tells customers the status of their order by ID
 ```
 
-The first time in a folder it sets everything up by itself (`.venv`, `weni-cli`,
-`.gitignore`; about a minute). It only stops for two things you must do yourself:
-log in to Weni once per computer (`! .venv/bin/weni login`, opens your browser) and
-pick which Weni project to use.
+`/weni:setup` prepares the folder (`.venv`, `weni-cli`, `.gitignore`; about a minute),
+your Weni login, and the project to use. If you skip it, the first `/weni:new-agent`
+does the same automatically. Only two things need you: logging in to Weni once per
+computer (`! .venv/bin/weni login`, opens your browser) and picking the Weni project.
+One project can hold many agents: run `/weni:new-agent` once per agent.
 
 ## What happens next
 
@@ -41,7 +43,7 @@ pick which Weni project to use.
 | Intake | Answer questions (channels, Retail Setup vs. direct VTEX credentials, ...) |
 | Plan | **Approve the plan** before any code is written |
 | Implement | — (the definition is validated automatically) |
-| Test | Provide credentials once; **confirm the eval**; approve any test it wants to relax |
+| Test | Provide credentials once; decide on the eval (it needs the agent **deployed** to a Weni project: skip, deploy, or switch to a test project); approve any test it wants to relax |
 | Review | — (an independent reviewer approves or sends it back) |
 | Docs | — (writes the agent's README with a sequence diagram) |
 
@@ -50,7 +52,8 @@ The result is `agents/<slug>/` (`agent_definition.yaml`, `tools/`,
 `.globals` files next to each tool. Work survives across sessions: reopen Claude in
 the folder and ask it to continue.
 
-**Deploying is always your call** — the harness never pushes:
+**Deploying is always your call** — the harness only pushes when you confirm it for
+the eval. To deploy yourself:
 
 ```bash
 cd agents/<slug> && ../../.venv/bin/weni project push agent_definition.yaml
@@ -60,7 +63,8 @@ cd agents/<slug> && ../../.venv/bin/weni project push agent_definition.yaml
 
 | Command | Does |
 |---------|------|
-| `/weni:setup <description>` | Prepare the folder (first time) and build a new collaborator agent |
+| `/weni:setup` | Prepare the folder, login, and Weni project (once per project; optional) |
+| `/weni:new-agent <description>` | Build a new collaborator agent (sets the folder up if needed) |
 | `/weni:edit-agent <slug> <change>` | Change an existing agent (copy its files to `agents/<slug>/` first) |
 | `/weni:status` | Readiness, open run, agents, and plugin version |
 
@@ -70,7 +74,8 @@ Ask for "the project README" to get a root README describing all your agents.
 
 | Message | Fix |
 |---------|-----|
-| `NOT_INSTALLED` | Normal in a new folder: `/weni:setup` installs everything |
+| `NOT_INSTALLED` | Normal in a new folder: `/weni:setup` or `/weni:new-agent` installs everything |
+| `EVAL_NOT_DEPLOYED` | The eval tests the deployed agent: deploy it (Claude asks first) or skip the eval |
 | `AUTH_REQUIRED` | `! .venv/bin/weni login` |
 | `PROJECT_NOT_SELECTED` | Claude lists your projects and asks which one to use |
 | Eval keeps failing | Read the triage table: it separates real bugs from overly strict tests |

@@ -1,13 +1,13 @@
 ---
-description: Set up this folder for Weni and build a new collaborator agent (full gated pipeline)
-argument-hint: <what the agent should do>
+description: Prepare this folder for Weni agents (.venv, weni-cli, .gitignore, login, project). Once per project; optional.
 ---
 
-Set up this folder and build a new Weni collaborator agent: $ARGUMENTS
+Prepare this folder for building Weni agents. Do not create any agent or run.
 
-Read `${CLAUDE_PLUGIN_ROOT}/skills/pipeline/SKILL.md` and follow it from "Start": pick
-a short kebab-case slug (confirm it with the user) and create the run with
-`--mode new`. In a new folder that run installs everything by itself (.venv,
-weni-cli, .gitignore; about a minute), stopping only for the Weni login and the
-project choice. Then begin at Intake. If the request above is empty, first ask the
-user what the agent should do.
+1. Run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/bootstrap_env.py"` from the project root
+   (adds `.gitignore` entries, creates `.venv`, installs `weni-cli`; about a minute).
+2. If it ends in `AUTH_REQUIRED`, ask the user to type `! .venv/bin/weni login`
+   (opens the browser), then re-run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/check_ready.py"`.
+3. If it ends in `PROJECT_NOT_SELECTED`, run `printf 'q\n' | .venv/bin/weni project list`,
+   ask the user which project to use, run `.venv/bin/weni project use <uuid>`, re-check.
+4. When it prints `READY`, say so in one line and suggest `/weni:new-agent <description>`.

@@ -25,7 +25,7 @@ contact) MUST also be in English, unless the user explicitly requests another lo
 ## Project Bootstrap and Auth
 
 Every pipeline is gated on a deterministic readiness check (no LLM tokens). The
-first `/weni:setup` in a folder installs weni-cli into `.venv` and adds the
+first `/weni:setup` or `/weni:new-agent` in a folder installs weni-cli into `.venv` and adds the
 `.gitignore` entries automatically; `/weni:status` re-checks at any time.
 
 The gate (`${CLAUDE_PLUGIN_ROOT}/scripts/check_ready.py`) returns `READY`, `AUTH_REQUIRED`,
@@ -190,6 +190,11 @@ weni eval run                   # Run all tests
 weni eval run --filter "test1"  # Run specific tests
 weni eval run --verbose         # Detailed reasoning
 ```
+
+`weni eval run` talks to the agent **deployed** in the selected project (routed by its
+Manager), never to the local files: the collaborator must be pushed first, and in edit
+mode the eval tests the deployed version until the changes are pushed. The harness
+tracks this (`deploy.py`, `run_eval.py --check`).
 
 An LLM judge checks every `expected_results` item against the agent's answer; one
 missed item fails the test. Write criteria that would make the answer **wrong** if

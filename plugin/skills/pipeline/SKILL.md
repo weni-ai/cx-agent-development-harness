@@ -45,9 +45,9 @@ exists). Never pack several agents into one definition.
 2. **New work.** List `agents/`. If the request is ambiguous, ask whether to edit an
    existing collaborator (which) or create a new one (pick a short kebab-case slug).
    Then run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/init_run.py" "<feature>" --target <slug> --mode <new|edit>`.
-   In a new folder it sets everything up by itself (.gitignore, `.venv`, weni-cli;
-   tell the user the first time takes about a minute), then applies the readiness
-   gate. If it does not print a run dir, resolve what it printed and run it again:
+   In a folder that was never set up (no `/weni:setup`) it sets everything up by
+   itself (.gitignore, `.venv`, weni-cli; tell the user the first time takes about a
+   minute), then applies the readiness gate. If it does not print a run dir, resolve what it printed and run it again:
    - `AUTH_REQUIRED` → ask the user to type `! .venv/bin/weni login` (browser OAuth).
      Never run it yourself.
    - `PROJECT_NOT_SELECTED` → run `printf 'q\n' | .venv/bin/weni project list`, ask
@@ -85,21 +85,37 @@ credentials, and constraints. In edit mode the user has copied the agent into
    `.globals`; re-dispatch.
 2. Confirm `run_tool_tests.py` reports `ALL_PASS` (re-run it if in doubt). Never use
    `weni run` directly.
-3. Ask once: "Run the eval now, iterating automatically (max 3 rounds)?"
-   - **No** → mark the phase `done` with artifact `none (eval skipped by user)` and a
-     checkpoint saying so. Never mark it `skipped`/`failed`.
-   - **Yes** → eval loop:
-     1. `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/run_eval.py" --run-dir <RUN_DIR>`.
-     2. `EVAL_PASS` → gate passed.
-     3. `EVAL_FAIL` → dispatch the tester (Mode B, triage) and show the user its table.
-     4. `REAL_BUG` / `INSTRUCTION_GAP` → implementer → validate → affected tool tests
-        → next round. `FLAKY` → re-run with `--filter <test>` (doesn't count as a round).
-        `OVERSPECIFIED_TEST` → ask the user to approve each relaxed criterion; only
-        then re-dispatch the tester to apply it.
-     5. `EVAL_ROUND_LIMIT` → stop and ask the user how to proceed.
+3. **Eval (optional; it needs a deployment).** `weni eval` talks to the agent
+   *deployed* in the selected Weni project, never to the local files: in new mode the
+   collaborator does not exist there yet, and in edit mode the eval would test the old
+   deployed version. Run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/run_eval.py" --run-dir <RUN_DIR> --check`,
+   explain this to the user (name the project from `check_ready.py`/`weni project current`),
+   and ask:
+   - **(a) Skip the eval** → mark the phase `done` with artifact
+     `none (eval skipped by user)` and a checkpoint saying so. Never `skipped`/`failed`.
+   - **(b) Deploy to this project, then evaluate** (max 3 rounds). Warn that this
+     publishes the agent to that project's live Manager. Only after the user confirms
+     in that same turn: `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/deploy.py" --target <slug>`.
+   - **(c) Pause to switch to a test project** (`.venv/bin/weni project use <uuid>`), then ask again.
+   - If `--check` printed `EVAL_READY` (already deployed and current), offer to run it directly.
+   - If the user says the current local version is already deployed outside the harness:
+     `deploy.py --target <slug> --record-only`.
 
-   The gate passes on `EVAL_PASS`, or when no `REAL_BUG`/`INSTRUCTION_GAP` remains
-   and the user accepted the remaining failures.
+   **Eval loop:**
+   1. `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/run_eval.py" --run-dir <RUN_DIR>`.
+   2. `EVAL_PASS` → gate passed.
+   3. `EVAL_FAIL` → dispatch the tester (Mode B, triage) and show the user its table.
+   4. `NOT_HANDLED_BY_TARGET` → `run_eval.py --run-dir <RUN_DIR> --void-last "<reason>"`
+      (the round does not count), send nothing to the implementer, and ask the user.
+   5. `REAL_BUG` / `INSTRUCTION_GAP` → implementer → validate → affected tool tests →
+      the deployment is now stale (`EVAL_STALE_DEPLOYMENT`): ask again before
+      redeploying with `deploy.py` → next round. `FLAKY` → re-run with
+      `--filter <test>` (doesn't count as a round). `OVERSPECIFIED_TEST` → ask the user
+      to approve each relaxed criterion; only then re-dispatch the tester to apply it.
+   6. `EVAL_ROUND_LIMIT` → stop and ask the user how to proceed.
+
+   The gate passes on `EVAL_PASS`, when the user skips the eval, or when no
+   `REAL_BUG`/`INSTRUCTION_GAP` remains and the user accepted the remaining failures.
 
 **4 Review.** On `REJECT`, loop back to phase 2 with the findings, then validate and
 test again before re-review.
@@ -124,9 +140,11 @@ python3 "${CLAUDE_PLUGIN_ROOT}/scripts/update_state.py" --latest --focus "..." -
 ## Hard rules
 
 - Never run `weni login` or any interactive auth command.
-- Never run `weni project push` or any deploy unless the user confirms in that same
-  turn. The pipeline ends at Docs.
-- Never run `run_eval.py` without the user's confirmation for that eval loop.
+- Never deploy except through `deploy.py`, and only after the user confirms in that
+  same turn (each redeploy is a new confirmation). Deploying is an optional step of
+  the eval; the pipeline itself ends at Docs.
+- Never run `run_eval.py` without the user's confirmation for that eval loop, and
+  never against an agent that is not deployed and current (the script refuses).
 - Never advance a phase whose gate has not passed.
 - Never relax, delete, or weaken an eval test without the user's approval.
 - Edit in place at the project root. Never create worktrees or copy the project

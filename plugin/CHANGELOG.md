@@ -5,6 +5,23 @@ Breaking / New / Changed / Fixed. Versions follow semver.
 
 ## Unreleased
 
+### Changed
+- `/weni:setup` again only prepares the project (once, optional) and
+  `/weni:new-agent <description>` builds each agent, setting the folder up itself
+  if needed. One project can hold many agents.
+- The eval now explains it tests the agent deployed in the Weni project, not your
+  local files, and asks you to skip it, deploy first (with confirmation), or switch
+  to a test project.
+
+### Fixed
+- The eval no longer runs against an agent that is not deployed or is out of date
+  (`EVAL_NOT_DEPLOYED` / `EVAL_STALE_DEPLOYMENT`), so it cannot "fix" a correct agent
+  based on answers from other collaborators.
+- Eval rounds where the target agent never answered are discarded instead of
+  triggering code or instruction changes.
+- Restored the full Weni constitution (it was truncated: evaluation, Retail Setup,
+  validation rules, and more were missing).
+
 ## 2.0.1 — 2026-10-07
 
 ### Changed

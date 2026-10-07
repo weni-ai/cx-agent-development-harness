@@ -21,6 +21,7 @@ from __future__ import annotations
 
 # Standard library
 import argparse
+import re
 import subprocess
 import time
 from pathlib import Path
@@ -44,8 +45,8 @@ FIXES = {
     "then `.venv/bin/weni project use <project-uuid>`.",
     "PROBE_ERROR": "The Weni CLI returned an unexpected answer (see output below). "
     "Run `/weni:status` to see it again.",
-    "NOT_INSTALLED": "This folder is not set up for Weni yet; `/weni:setup` sets it up "
-    "automatically (installs weni-cli, about 1 minute).",
+    "NOT_INSTALLED": "This folder is not set up for Weni yet: run `/weni:setup`, or go straight "
+    "to `/weni:new-agent`, which sets it up automatically (about 1 minute).",
 }
 
 # Substrings (lowercase) in the CLI output. Tune them here if the CLI wording
@@ -109,6 +110,14 @@ def probe(validate_token: bool = True) -> tuple[str, str]:
     if code != 0:
         return "PROBE_ERROR", output
     return "READY", output
+
+
+def current_project() -> str:
+    """Return the selected Weni project uuid (empty when none or unreadable)."""
+    _, output = run_weni("project", "current")
+    match = re.search(r"current project:\s*(\S+)", output, re.IGNORECASE)
+    project = match.group(1) if match else ""
+    return "" if project.lower() == "none" else project
 
 
 def ensure_ready() -> None:

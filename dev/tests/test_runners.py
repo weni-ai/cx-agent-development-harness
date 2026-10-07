@@ -37,10 +37,12 @@ class ToolTests(HarnessProject):
 class EvalRounds(HarnessProject):
     def setUp(self):
         super().setUp()
-        self.add_agent()
+        self.folder = self.add_agent()
         self.run_dir = self.new_run()
         self.tests_md = self.run_dir / "artifacts" / "03-tests.md"
         self.tests_md.write_text("tester owns this")
+        deployed = self.script("deploy.py", "--target", "demo")
+        self.assertIn("DEPLOY_OK", deployed.stdout, deployed.stdout + deployed.stderr)
 
     def eval(self, *args, **fake):
         return self.script("run_eval.py", "--run-dir", str(self.run_dir), *args, **fake)
@@ -67,3 +69,50 @@ class EvalRounds(HarnessProject):
     def test_verbose_is_always_passed(self):
         self.eval()
         self.assertIn("eval run --verbose", (self.tmp / "weni.log").read_text())
+
+
+class EvalNeedsDeployment(HarnessProject):
+    def setUp(self):
+        super().setUp()
+        self.folder = self.add_agent()
+        self.run_dir = self.new_run()
+
+    def eval(self, *args, **fake):
+        return self.script("run_eval.py", "--run-dir", str(self.run_dir), *args, **fake)
+
+    def test_refuses_when_never_deployed(self):
+        result = self.eval()
+        self.assertEqual(result.returncode, 4)
+        self.assertIn("EVAL_NOT_DEPLOYED", result.stdout)
+        self.assertNotIn("eval run", (self.tmp / "weni.log").read_text())
+
+    def test_refuses_when_local_changes_since_push(self):
+        self.script("deploy.py", "--target", "demo")
+        self.assertIn("EVAL_READY", self.eval("--check").stdout)
+        (self.folder / "agent_definition.yaml").write_text("agents: {changed: {}}\n")
+        result = self.eval()
+        self.assertEqual(result.returncode, 5)
+        self.assertIn("EVAL_STALE_DEPLOYMENT", result.stdout)
+
+    def test_eval_plan_edits_do_not_require_redeploy(self):
+        self.script("deploy.py", "--target", "demo")
+        (self.folder / "agent_evaluation.yml").write_text("tests: {}\n")
+        self.assertIn("EVAL_READY", self.eval("--check").stdout)
+
+    def test_deployment_to_another_project_does_not_count(self):
+        self.script("deploy.py", "--target", "demo")
+        self.assertIn("EVAL_NOT_DEPLOYED", self.eval(project_out="Current project: other-uuid").stdout)
+
+    def test_failed_push_is_not_recorded(self):
+        result = self.script("deploy.py", "--target", "demo", push_out="error: invalid definition", push_rc=1)
+        self.assertIn("DEPLOY_FAIL", result.stdout)
+        self.assertIn("EVAL_NOT_DEPLOYED", self.eval().stdout)
+
+    def test_voided_round_does_not_count(self):
+        self.script("deploy.py", "--target", "demo")
+        self.eval("--max-rounds", "1", eval_rc=1)
+        self.assertIn("EVAL_ROUND_VOIDED", self.eval("--void-last", "Manager answered").stdout)
+        self.assertIn("EVAL_PASS", self.eval("--max-rounds", "1").stdout)
+        artifacts = self.run_dir / "artifacts"
+        self.assertTrue((artifacts / "03-eval-void-1.md").exists())
+        self.assertTrue((artifacts / "03-eval-run-1.md").exists())
