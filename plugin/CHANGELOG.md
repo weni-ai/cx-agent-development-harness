@@ -5,6 +5,8 @@ Breaking / New / Changed / Fixed. Versions follow semver.
 
 ## Unreleased
 
+## 2.0.1 — 2026-10-07
+
 ### Changed
 - `/weni:new-agent` is now `/weni:setup <description>`: in a new folder it installs
   `weni-cli` into `.venv` and adds `.gitignore` entries by itself, stopping only for
