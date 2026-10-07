@@ -18,6 +18,12 @@ In any Claude Code session:
 /plugin install weni@weni-ai
 ```
 
+This installs it for your user (every folder on this computer), which is the most
+robust option. To tie it to one repository instead, so teammates get it when they
+clone, run in that folder's terminal:
+`claude plugin install weni@weni-ai --scope project` (it is recorded in
+`.claude/settings.json`; commit that file).
+
 Then turn on updates: `/plugin` → **Marketplaces** → `weni-ai` → **Enable auto-update**
 (or update manually with `/plugin marketplace update weni-ai`).
 
@@ -78,6 +84,7 @@ Ask for "the project README" to get a root README describing all your agents.
 | `EVAL_NOT_DEPLOYED` | The eval tests the deployed agent: deploy it (Claude asks first) or skip the eval |
 | `AUTH_REQUIRED` | `! .venv/bin/weni login` |
 | `PROJECT_NOT_SELECTED` | Claude lists your projects and asks which one to use |
+| `/weni:` commands don't appear | The plugin is disabled for this folder, usually because its `.claude/` folder was deleted. Run `claude plugin enable weni@weni-ai` (add `--scope project` if you installed it per project) and restart `claude` |
 | Eval keeps failing | Read the triage table: it separates real bugs from overly strict tests |
 
 What changed in each version: [`plugin/CHANGELOG.md`](plugin/CHANGELOG.md). Feedback or

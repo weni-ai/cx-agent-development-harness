@@ -116,3 +116,29 @@ class EvalNeedsDeployment(HarnessProject):
         artifacts = self.run_dir / "artifacts"
         self.assertTrue((artifacts / "03-eval-void-1.md").exists())
         self.assertTrue((artifacts / "03-eval-run-1.md").exists())
+
+
+def python_without_yaml():
+    """Return a system python that lacks PyYAML (like a partner's python3), if any."""
+    import shutil
+    import subprocess as sp
+    for candidate in ("/usr/bin/python3", shutil.which("python3")):
+        if candidate and sp.run([candidate, "-c", "import yaml"], capture_output=True).returncode != 0:
+            return candidate
+    return None
+
+
+@unittest.skipUnless(HAS_YAML and python_without_yaml(), "needs a python3 without PyYAML and a .venv with it")
+class RunsInsideProjectVenv(HarnessProject):
+    def test_yaml_scripts_work_when_called_with_system_python(self):
+        import os
+        import subprocess as sp
+        from helpers import SCRIPTS
+        import shutil
+        from helpers import REPO
+        shutil.rmtree(self.root / ".venv")
+        os.symlink(REPO / ".venv", self.root / ".venv")  # a real venv with PyYAML, like the partner's
+        self.add_agent(definition=DEFINITION)
+        result = sp.run([python_without_yaml(), str(SCRIPTS / "validate_schema.py"), "--target", "demo"],
+                        cwd=str(self.root), env=self.env, capture_output=True, text=True)
+        self.assertNotIn("PyYAML is required", result.stdout + result.stderr)

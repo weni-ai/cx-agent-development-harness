@@ -19,15 +19,15 @@ import re
 import sys
 from pathlib import Path
 
+# Local (first: _common re-runs this script inside the project .venv, which has PyYAML)
+from _common import agent_dir
+
 # Third-party
 try:
     import yaml
 except ImportError:
     print("PyYAML is required. Run this script with the project .venv python.", file=sys.stderr)
     raise SystemExit(2)
-
-# Local
-from _common import agent_dir
 
 LEGACY_RESPONSES = (
     "AttachmentResponse",

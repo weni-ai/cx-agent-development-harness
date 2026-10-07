@@ -25,14 +25,14 @@ import subprocess
 from datetime import datetime
 from pathlib import Path
 
+# Local (first: _common re-runs this script inside the project .venv, which has PyYAML)
+from _common import agent_dir, venv_bin
+
 # Third-party
 try:
     import yaml
 except ImportError:
     raise SystemExit("PyYAML is required. Run this script with the project .venv python.")
-
-# Local
-from _common import agent_dir, venv_bin
 from check_ready import ensure_ready
 
 # Output substrings that mean the tool crashed even if `weni run` exited 0.
