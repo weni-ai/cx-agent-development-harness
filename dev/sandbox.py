@@ -26,13 +26,23 @@ SCENARIOS = ROOT / "dev" / "scenarios"
 SANDBOX_ROOT = Path(os.environ.get("HARNESS_SANDBOX_ROOT", Path.home() / ".harness-sandboxes"))
 MARKER = ".harness-sandbox"
 WARN_ABOVE = 3
+def sandboxes():
+    """Return every marked sandbox directory, oldest first."""
+    if not SANDBOX_ROOT.exists():
+        return []
+    return sorted(path for path in SANDBOX_ROOT.iterdir() if (path / MARKER).exists())
+
+
 def cmd_new(args):
     scenario = SCENARIOS / f"{args.scenario}.md"
     if not scenario.exists():
         available = ", ".join(sorted(path.stem for path in SCENARIOS.glob("*.md")))
         print(f"Unknown scenario '{args.scenario}'. Available: {available}")
         return 2
-    dest = SANDBOX_ROOT / f"{datetime.now():%Y%m%d-%H%M%S}-{args.scenario}"
+    base = f"{datetime.now():%Y%m%d-%H%M%S}-{args.scenario}"
+    dest, suffix = SANDBOX_ROOT / base, 2
+    while dest.exists():  # two sandboxes in the same second
+        dest, suffix = SANDBOX_ROOT / f"{base}-{suffix}", suffix + 1
     dest.mkdir(parents=True)
     (dest / MARKER).write_text(f"source={ROOT}\nscenario={args.scenario}\n", encoding="utf-8")
     if (ROOT / ".venv").exists():
