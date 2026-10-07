@@ -5,10 +5,13 @@ and read/write the run state. Keeping them here avoids duplicating logic across
 the individual scripts (init_run, update_state, run_eval, etc.).
 """
 
+from __future__ import annotations
+
 # Standard library
 import json
 import os
 import re
+import sys
 from datetime import datetime
 from pathlib import Path
 
@@ -26,20 +29,20 @@ OPEN_STATUSES = ("pending", "in-progress")
 
 
 def project_root() -> Path:
-    """Return the project root (two levels above the .cursor/scripts folder)."""
+    """Return the project root (two levels above .harness/scripts)."""
     return Path(__file__).resolve().parents[2]
 
 
 def runs_dir() -> Path:
     """Return the directory that holds all runs."""
-    return project_root() / ".cursor" / "runs"
+    return project_root() / ".harness" / "runs"
 
 
 def agents_root() -> Path:
     """Return the workspace directory that holds every collaborator agent.
 
     Each collaborator lives in its own subfolder (`agents/<slug>/`) at the same
-    level as .cursor, with its own `agent_definition.yaml`, `tools/`, and eval.
+    level as .harness, with its own `agent_definition.yaml`, `tools/`, and eval.
     A project with a single agent simply has one subfolder. This keeps the agent
     code isolated from the harness config and lets `weni project push` run from a
     single collaborator folder so only that agent is uploaded to CX Platform.
@@ -207,3 +210,21 @@ def latest_open_run(target: str | None = None) -> Path | None:
         if any(phase["status"] in OPEN_STATUSES for phase in state["phases"]):
             return run_dir
     return None
+
+
+def _reexec_in_venv() -> None:
+    """Re-run the calling script with the project .venv python when it exists.
+
+    Lets every script be invoked as `python3 .harness/scripts/<x>.py` while still
+    getting the venv's dependencies (PyYAML). No-op when already inside the venv.
+    """
+    venv_python = venv_bin("python")
+    if os.environ.get("HARNESS_IN_VENV") or not venv_python.exists():
+        return
+    if Path(sys.prefix).resolve() == (project_root() / ".venv").resolve():
+        return
+    os.environ["HARNESS_IN_VENV"] = "1"
+    os.execv(str(venv_python), [str(venv_python), *sys.argv])
+
+
+_reexec_in_venv()

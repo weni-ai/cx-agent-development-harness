@@ -11,6 +11,8 @@ Exit codes:
     2  could not run (missing file or dependency)
 """
 
+from __future__ import annotations
+
 # Standard library
 import argparse
 import re

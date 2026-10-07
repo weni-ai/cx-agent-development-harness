@@ -24,43 +24,20 @@ contact) MUST also be in English, unless the user explicitly requests another lo
 
 ## Project Bootstrap and Auth
 
-Every Weni agent project MUST be bootstrapped before any local test or deploy command.
-
-### 1. Create the virtual environment and install the CLI (non-interactive)
+Every pipeline is gated on a deterministic readiness check (no LLM tokens):
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install --upgrade weni-cli
+./harness setup        # creates .venv, installs weni-cli, then checks readiness
+./harness doctor       # re-check at any time
 ```
 
-### 2. Authenticate (interactive, human-driven, one-time)
+The gate (`.harness/scripts/check_ready.py`) returns `READY`, `AUTH_REQUIRED`,
+`PROJECT_NOT_SELECTED`, `PROBE_ERROR`, or `NOT_INSTALLED`, each with the exact fix.
+`init_run.py` refuses to create a run unless it is `READY`.
 
-`weni login` opens a browser-based OAuth flow. An agent cannot complete this flow on
-its own. The session token is persisted in `~/.weni_cli`, so authentication is a
-one-time human action that survives across runs and sessions.
-
-```bash
-source .venv/bin/activate
-weni login
-```
-
-After a successful login, the browser tab can be closed.
-
-### 3. Auth probe (deterministic gate, no LLM tokens)
-
-Before enabling the test phase, verify authentication with a probe instead of calling
-`weni login` again:
-
-```bash
-weni project current   # or: weni project list
-```
-
-- Probe succeeds -> already authenticated -> continue the pipeline.
-- Probe fails -> pause and ask the user to run `weni login` once, then re-probe.
-
-> Never run `weni login` from an autonomous agent step: it is an interactive blocking
-> process that waits for the browser OAuth callback.
+`weni login` is a browser OAuth flow: only the human runs it (in Claude Code:
+`! .venv/bin/weni login`). The token persists in `~/.weni_cli`, so it is a one-time
+action. Never run `weni login` from an agent step.
 
 ## Quick Reference
 
@@ -217,13 +194,26 @@ weni eval run --filter "test1"  # Run specific tests
 weni eval run --verbose         # Detailed reasoning
 ```
 
+An LLM judge checks every `expected_results` item against the agent's answer; one
+missed item fails the test. Write criteria that would make the answer **wrong** if
+missing — not wording or style.
+
+- One behavior per test; `steps` are realistic user messages.
+- One checkable fact per `expected_results` item (data returned, tool used, guardrail
+  respected, correct next step).
+- Require exact wording, names, or formatting only when the plan states it as a
+  business requirement.
+- Never put "nice to have" details in `expected_results`.
+
 ```yaml
 tests:
-  greeting:
+  weather_advice:
     steps:
-      - Send a greeting "Hello!"
+      - Ask "What should I wear in Bogota today?"
     expected_results:
-      - Agent responds with a friendly greeting
+      - Agent reports the current weather for Bogota using the weather tool
+      - Agent recommends clothing consistent with that weather
+      # Too strict (fails correct answers): "Agent says 'In Bogota it is 14°C'"
 ```
 
 ### CLI Workflow

@@ -81,7 +81,8 @@ architecture diagram, which you leave as an empty placeholder for the user. Sect
    ```
 3. **`## Collaborators`** — table generated from `agents/*/`: slug · one-line purpose
    · link to its README (`agents/<slug>/README.md`).
-4. **`## Setup`** — bootstrap steps: `.venv` + `weni-cli` + `weni login`.
+4. **`## Setup`** — `./harness setup` (creates `.venv`, installs `weni-cli`), then
+   `.venv/bin/weni login` if asked.
 5. **`## Deploy`** — push per collaborator:
    `cd agents/<slug> && weni project push agent_definition.yaml`.
 

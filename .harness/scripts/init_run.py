@@ -4,12 +4,17 @@ Creates a new run directory with a fresh STATE.md (all phases pending), an empty
 artifacts folder, and a logs folder. With --latest-open it instead resolves the
 most recent run that still has open phases, enabling cross-session resume.
 
+Creating a run is gated: it refuses (with the gate's exit code) unless the Weni
+CLI is READY (installed, logged in, project selected). See check_ready.py.
+
 Usage:
-    python .claude/scripts/init_run.py "build order lookup agent" --target order-bot
-    python .claude/scripts/init_run.py "add tracking tool" --target order-bot --mode edit
-    python .claude/scripts/init_run.py --latest-open
-    python .claude/scripts/init_run.py --latest-open --target order-bot
+    python .harness/scripts/init_run.py "build order lookup agent" --target order-bot
+    python .harness/scripts/init_run.py "add tracking tool" --target order-bot --mode edit
+    python .harness/scripts/init_run.py --latest-open
+    python .harness/scripts/init_run.py --latest-open --target order-bot
 """
+
+from __future__ import annotations
 
 # Standard library
 import argparse
@@ -24,6 +29,7 @@ from _common import (
     save_state,
     slugify,
 )
+from check_ready import ensure_ready
 
 
 def build_initial_state(run_id: str, feature: str, mode: str, target: str | None) -> dict:
@@ -90,6 +96,7 @@ def main() -> None:
     if not args.description:
         parser.error("a feature description is required when not using --latest-open")
 
+    ensure_ready()
     print(create_run(args.description, args.mode, args.target))
 
 

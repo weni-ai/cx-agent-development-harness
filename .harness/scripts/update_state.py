@@ -5,10 +5,12 @@ main session) should call this script. It is deterministic and consumes no LLM
 tokens.
 
 Usage:
-    python .cursor/scripts/update_state.py --run-dir <dir> --phase plan --status in-progress
-    python .cursor/scripts/update_state.py --latest --phase plan --status done --artifact 02-plan.md
-    python .cursor/scripts/update_state.py --latest --focus "Waiting for reviewer" --checkpoint "Tests passed"
+    python .harness/scripts/update_state.py --run-dir <dir> --phase plan --status in-progress
+    python .harness/scripts/update_state.py --latest --phase plan --status done --artifact 02-plan.md
+    python .harness/scripts/update_state.py --latest --focus "Waiting for reviewer" --checkpoint "Tests passed"
 """
+
+from __future__ import annotations
 
 # Standard library
 import argparse

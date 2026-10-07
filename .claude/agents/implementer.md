@@ -18,12 +18,16 @@ Read, in order:
 2. `<RUN_DIR>/artifacts/01-plan.md` (the approved plan you must implement; in edit
    mode this is a delta plan — apply only the listed changes).
 3. `<RUN_DIR>/artifacts/04-review.md` if it exists (reviewer feedback to address).
+4. `<RUN_DIR>/artifacts/03-tests.md` if it exists: fix every eval failure the triage
+   classified as `REAL_BUG` or `INSTRUCTION_GAP` (for the latter, adjust the agent's
+   `instructions`, never the tests).
 
 ## What you produce
 
-All files for this collaborator live in its workspace folder `agents/<slug>/` (at the
-same level as `.claude`). Create the folder if it does not exist. Never write agent
-files at the project root, inside `.claude`, or inside another collaborator's folder;
+All files for this collaborator live in its workspace folder `agents/<slug>/`.
+Create the folder if it does not exist. Never write agent files at the project root,
+inside the harness folders (`.harness`, `.claude`, `.cursor`), or inside another
+collaborator's folder;
 this keeps each agent isolated so `weni project push` from `agents/<slug>/` uploads
 only that one agent. In edit mode, modify the existing files in place per the delta
 plan and leave everything else untouched.

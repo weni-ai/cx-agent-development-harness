@@ -1,0 +1,117 @@
+#!/usr/bin/env python3
+"""Weni agent harness CLI — the single entry point for humans.
+
+    ./harness setup      Create .venv, install weni-cli, check login/project
+    ./harness doctor     Diagnose the environment and say what is missing
+    ./harness init       Turn this copy into a clean partner project (removes dev/)
+    ./harness sync       Regenerate the Cursor edition from .claude/
+
+Maintainer-only (available while dev/ exists):
+
+    ./harness sandbox    new <scenario> | list | clean   (see dev/README.md)
+    ./harness test       Run the harness self-tests
+"""
+
+import argparse
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent
+SCRIPTS = ROOT / ".harness" / "scripts"
+DEV = ROOT / "dev"
+MIN_PYTHON = (3, 9)
+
+
+def run_script(name, *args):
+    """Run a harness script and return its exit code."""
+    return subprocess.call([sys.executable, str(SCRIPTS / name), *args], cwd=str(ROOT))
+
+
+def cmd_setup(_args):
+    return run_script("bootstrap_env.py")
+
+
+def cmd_doctor(_args):
+    """Print a short checklist of everything the pipeline needs."""
+    ok = sys.version_info >= MIN_PYTHON
+    version = ".".join(map(str, MIN_PYTHON))
+    print(f"[{'ok' if ok else '!!'}] Python {sys.version.split()[0]} (need >= {version})", flush=True)
+    venv_ok = (ROOT / ".venv").exists()
+    print(f"[{'ok' if venv_ok else '!!'}] .venv {'present' if venv_ok else 'missing -> ./harness setup'}", flush=True)
+    print("[..] Weni readiness (validating the login can take ~20s):", flush=True)
+    ready = run_script("check_ready.py") == 0
+    slugs = sorted(p.parent.name for p in (ROOT / "agents").glob("*/agent_definition.yaml"))
+    print(f"[ok] Collaborators: {', '.join(slugs) if slugs else 'none yet'}", flush=True)
+    if DEV.exists():
+        print("[..] Maintainer checkout (dev/ present). Edition sync:", flush=True)
+        run_script("sync_editions.py", "--check")
+    return 0 if ok and ready else 1
+
+
+def cmd_sync(args):
+    return run_script("sync_editions.py", *(["--check"] if args.check else []))
+
+
+def cmd_init(args):
+    """Strip maintainer-only files so a partner starts from a clean project."""
+    if not DEV.exists():
+        print("Already initialized (no dev/ folder). Nothing to do.")
+        return 0
+    if (DEV / ".maintainer").exists() and not args.force:
+        print("Refusing: this is the harness maintainer checkout (dev/.maintainer exists).")
+        print("Use `./harness sandbox new <scenario>` to try the partner experience.")
+        return 2
+    if not args.yes:
+        print("This deletes dev/ (harness maintenance files) and replaces .gitignore.")
+        if input("Type 'init' to continue: ").strip() != "init":
+            print("Aborted.")
+            return 1
+    shutil.copyfile(DEV / "templates" / "gitignore", ROOT / ".gitignore")
+    shutil.rmtree(DEV)
+    (ROOT / "agents").mkdir(exist_ok=True)
+    if args.fresh_git:
+        shutil.rmtree(ROOT / ".git", ignore_errors=True)
+        subprocess.call(["git", "init", "-q"], cwd=str(ROOT))
+    print("Initialized. Next: ./harness setup, then open this folder in your editor and run /new-agent.")
+    return 0
+
+
+def cmd_dev(script, args):
+    if not DEV.exists():
+        print("Maintainer-only command (dev/ was removed by `./harness init`).")
+        return 2
+    return subprocess.call([sys.executable, str(DEV / script), *args], cwd=str(ROOT))
+
+
+def main():
+    parser = argparse.ArgumentParser(prog="harness", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    sub = parser.add_subparsers(dest="command", required=True)
+    sub.add_parser("setup", help="Create .venv, install weni-cli, check readiness")
+    sub.add_parser("doctor", help="Diagnose the environment")
+    sync = sub.add_parser("sync", help="Regenerate .cursor/ from .claude/")
+    sync.add_argument("--check", action="store_true", help="Only verify, do not write")
+    init = sub.add_parser("init", help="Remove maintainer files for a clean partner project")
+    init.add_argument("--yes", action="store_true", help="Skip the confirmation prompt")
+    init.add_argument("--fresh-git", action="store_true", help="Also reset git history (git init)")
+    init.add_argument("--force", action="store_true", help="Run even in the maintainer checkout")
+    sandbox = sub.add_parser("sandbox", help="(maintainer) Disposable partner-like copies")
+    sandbox.add_argument("rest", nargs=argparse.REMAINDER)
+    test = sub.add_parser("test", help="(maintainer) Run the harness self-tests")
+    test.add_argument("rest", nargs=argparse.REMAINDER)
+    args = parser.parse_args()
+
+    if args.command == "sandbox":
+        return cmd_dev("sandbox.py", args.rest)
+    if args.command == "test":
+        if not DEV.exists():
+            return cmd_dev("", [])
+        venv_python = ROOT / ".venv" / "bin" / "python"
+        python = str(venv_python) if venv_python.exists() else sys.executable
+        return subprocess.call([python, "-m", "unittest", "discover", "-s", "dev/tests", *args.rest], cwd=str(ROOT))
+    return {"setup": cmd_setup, "doctor": cmd_doctor, "sync": cmd_sync, "init": cmd_init}[args.command](args)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

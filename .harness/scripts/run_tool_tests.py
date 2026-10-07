@@ -7,12 +7,17 @@ re-testing one tool never clobbers the results of the others. A slim summary
 table (status per tool, no verbose output) is rebuilt at
 `agents/<slug>/test-results.md` from the per-tool files after every run.
 
+A tool FAILS when `weni run` exits non-zero OR its output contains a failure
+marker (e.g. a Python traceback): the CLI can exit 0 even when the tool crashed.
+
 This is distinct from `weni eval run`, which runs the full evaluation suite.
 
 Usage:
-    python .claude/scripts/run_tool_tests.py --target <slug>
-    python .claude/scripts/run_tool_tests.py --target <slug> --tool <tool_key>
+    python .harness/scripts/run_tool_tests.py --target <slug>
+    python .harness/scripts/run_tool_tests.py --target <slug> --tool <tool_key>
 """
+
+from __future__ import annotations
 
 # Standard library
 import argparse
@@ -28,6 +33,10 @@ except ImportError:
 
 # Local
 from _common import agent_dir, venv_bin
+from check_ready import ensure_ready
+
+# Output substrings that mean the tool crashed even if `weni run` exited 0.
+FAILURE_MARKERS = ("Traceback (most recent call last)",)
 
 
 def load_agent_definition(definition_path: Path) -> dict:
@@ -54,12 +63,13 @@ def collect_tools(definition: dict, agent_filter: str | None = None) -> list[tup
     return triples
 
 
-def run_tool(weni: Path, definition_file: str, agent_key: str, tool_key: str, cwd: Path) -> tuple[str, int]:
-    """Run a single tool test with verbose flag and return (output, returncode)."""
+def run_tool(weni: Path, definition_file: str, agent_key: str, tool_key: str, cwd: Path) -> tuple[str, bool]:
+    """Run a single tool test with verbose flag and return (output, passed)."""
     command = [str(weni), "run", definition_file, agent_key, tool_key, "-v"]
     result = subprocess.run(command, cwd=str(cwd), capture_output=True, text=True)
     combined = result.stdout + ("\n" + result.stderr if result.stderr else "")
-    return combined, result.returncode
+    passed = result.returncode == 0 and not any(marker in combined for marker in FAILURE_MARKERS)
+    return combined, passed
 
 
 def write_tool_result(
@@ -103,18 +113,19 @@ def write_summary(root: Path, timestamp: str) -> Path:
     rebuilt from disk so partial runs (--tool) keep the other tools' rows.
     """
     rows = []
-    for results_file in sorted(root.glob("tools/*/test-results.md")):
+    summary_file = root / "test-results.md"
+    per_tool_files = sorted(path for path in root.rglob("test-results.md") if path != summary_file)
+    for results_file in per_tool_files:
         info = read_tool_result_header(results_file)
         relative = results_file.relative_to(root).as_posix()
         rows.append(
             f"| {info['agent']} | {info['tool']} | {info['status']} | {info['run_at']} | "
             f"[{relative}]({relative}) |"
         )
-    summary_file = root / "test-results.md"
     summary_file.write_text(
         "# Local Tool Test Results — summary\n\n"
         f"Updated: {timestamp}\n\n"
-        "Verbose output lives next to each tool (`tools/<tool>/test-results.md`).\n\n"
+        "Verbose output lives next to each tool (`<tool folder>/test-results.md`).\n\n"
         "| Agent | Tool | Status | Last run | Details |\n"
         "|-------|------|--------|----------|---------|\n"
         + "\n".join(rows)
@@ -141,10 +152,8 @@ def main() -> None:
     if not definition_path.exists():
         raise SystemExit(f"agent_definition.yaml not found at {definition_path}")
 
+    ensure_ready()
     weni = venv_bin("weni")
-    if not weni.exists():
-        raise SystemExit("weni CLI not found in .venv. Run bootstrap_env.py first.")
-
     definition = load_agent_definition(definition_path)
     tool_triples = collect_tools(definition, agent_filter=args.agent)
 
@@ -158,10 +167,9 @@ def main() -> None:
     overall_pass = True
 
     for agent_key, tool_key, folder in tool_triples:
-        output, returncode = run_tool(weni, "agent_definition.yaml", agent_key, tool_key, root)
-        status = "PASS" if returncode == 0 else "FAIL"
-        if returncode != 0:
-            overall_pass = False
+        output, passed = run_tool(weni, "agent_definition.yaml", agent_key, tool_key, root)
+        status = "PASS" if passed else "FAIL"
+        overall_pass = overall_pass and passed
         write_tool_result(root, folder, agent_key, tool_key, status, timestamp, output)
         print(f"  {status}  {agent_key}/{tool_key}")
 
