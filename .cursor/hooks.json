@@ -1,8 +1,0 @@
-{
-  "version": 1,
-  "hooks": {
-    "sessionStart": [
-      { "command": "python3 .harness/scripts/check_ready.py --hook cursor" }
-    ]
-  }
-}

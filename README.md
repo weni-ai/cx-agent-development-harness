@@ -1,38 +1,36 @@
-# VTEX CX Agent Development Harness
+# Weni Agent Harness for Claude Code
 
-Describe a CX Platform (Weni) AI agent in plain English, and this harness plans,
+Describe a VTEX CX Platform (Weni) AI agent in plain English, and Claude plans,
 builds, tests, reviews, and documents it with you — step by step, with your approval
 at each important gate.
 
-Works with **Claude Code** and **Cursor** (other tools that read `AGENTS.md`, such as
-Codex, get the orchestrator instructions but not the specialized subagents).
-
 ## Requirements
 
-- Python 3.9+ and git
-- Claude Code or Cursor
+- [Claude Code](https://code.claude.com), Python 3.9+, and git
 - A Weni account with access to the target project
 
-## Start in 3 steps
+## Install (once per computer)
 
-```bash
-# 1. Get a clean copy: "Use this template" on GitHub (or clone), then:
-./harness init          # removes the harness maintenance files (one time)
+In any Claude Code session:
 
-# 2. Install and connect
-./harness setup         # creates .venv, installs weni-cli, checks your login
-.venv/bin/weni login    # only if setup asks for it (opens your browser)
-
-# 3. Open the folder in Claude Code (`claude`) or Cursor and type:
-/new-agent An agent that tells customers the status of their order by order ID
+```
+/plugin marketplace add https://github.com/weni-ai/cx-agent-development-harness.git
+/plugin install weni@weni-ai
 ```
 
-Nothing starts until `./harness setup` (or `./harness doctor`) reports **READY**:
-logged in, with a Weni project selected.
+Then turn on updates: `/plugin` → **Marketplaces** → `weni-ai` → **Enable auto-update**
+(or update manually with `/plugin marketplace update weni-ai`).
+
+## Build your first agent
+
+1. Create or open the folder for your project and start `claude` there.
+2. `/weni:setup` — creates `.venv`, installs `weni-cli`, adds `.gitignore` entries,
+   and checks your login. If asked, type `! .venv/bin/weni login` (opens your browser).
+3. `/weni:new-agent An agent that tells customers the status of their order by ID`
+
+Nothing starts until the Weni login and project selection are **READY**.
 
 ## What happens next
-
-The assistant runs six phases and stops for you where it matters:
 
 | Phase | You are asked to |
 |-------|------------------|
@@ -43,11 +41,12 @@ The assistant runs six phases and stops for you where it matters:
 | Review | — (an independent reviewer approves or sends it back) |
 | Docs | — (writes the agent's README with a sequence diagram) |
 
-The result is `agents/<slug>/`: `agent_definition.yaml`, `tools/`,
-`agent_evaluation.yml`, and `README.md`. Credentials go in git-ignored `.env` /
-`.globals` files next to each tool.
+The result is `agents/<slug>/` (`agent_definition.yaml`, `tools/`,
+`agent_evaluation.yml`, `README.md`). Credentials stay in git-ignored `.env` /
+`.globals` files next to each tool. Work survives across sessions: reopen Claude in
+the folder and ask it to continue.
 
-**Deploying is always your call.** The harness never pushes. When ready:
+**Deploying is always your call** — the harness never pushes:
 
 ```bash
 cd agents/<slug> && ../../.venv/bin/weni project push agent_definition.yaml
@@ -55,27 +54,23 @@ cd agents/<slug> && ../../.venv/bin/weni project push agent_definition.yaml
 
 ## Commands
 
-| In your editor | Does |
-|----------------|------|
-| `/new-agent <description>` | Build a new collaborator agent |
-| `/edit-agent <slug> <change>` | Change an existing agent (copy its files to `agents/<slug>/` first) |
-| `/status` | Readiness, open run, and agents in this project |
+| Command | Does |
+|---------|------|
+| `/weni:new-agent <description>` | Build a new collaborator agent |
+| `/weni:edit-agent <slug> <change>` | Change an existing agent (copy its files to `agents/<slug>/` first) |
+| `/weni:status` | Readiness, open run, agents, and plugin version |
+| `/weni:setup` | Prepare the folder and check the login |
 
-| In the terminal | Does |
-|-----------------|------|
-| `./harness setup` | Install / re-install the environment |
-| `./harness doctor` | Explain what is missing |
-
-Work survives across sessions: reopen the editor and the assistant resumes the open
-run. Ask for "the project README" to get a root README describing all your agents.
+Ask for "the project README" to get a root README describing all your agents.
 
 ## Troubleshooting
 
 | Message | Fix |
 |---------|-----|
-| `NOT_INSTALLED` | `./harness setup` |
-| `AUTH_REQUIRED` | `.venv/bin/weni login` (in Claude Code: `! .venv/bin/weni login`) |
-| `PROJECT_NOT_SELECTED` | `.venv/bin/weni project list`, then `.venv/bin/weni project use <uuid>` |
+| `NOT_INSTALLED` | `/weni:setup` |
+| `AUTH_REQUIRED` | `! .venv/bin/weni login` |
+| `PROJECT_NOT_SELECTED` | Claude lists your projects and asks which one to use |
 | Eval keeps failing | Read the triage table: it separates real bugs from overly strict tests |
 
-Feedback or bugs: tell the harness maintainers (internal channel).
+What changed in each version: [`plugin/CHANGELOG.md`](plugin/CHANGELOG.md). Feedback or
+bugs: tell the harness maintainers (internal channel). Maintainers: see `CLAUDE.md`.

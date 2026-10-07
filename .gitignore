@@ -1,28 +1,11 @@
-# Harness source repo. Partner projects get dev/templates/gitignore via `./harness init`.
-
-# Virtual environment
+# Plugin source repo. Agents and runs are built in sandboxes, never committed here.
 .venv/
-
-# Local secrets for tool testing (never commit)
 **/.env
 **/.globals
-
-# Work products: agents and runs are built in sandboxes, never committed here
 agents/
-.harness/runs/*
-!.harness/runs/.gitkeep
-
-# Marks the maintainer checkout so `./harness init` refuses to run here
-dev/.maintainer
-
-# Python
+.harness/
+**/test-results.md
 __pycache__/
 *.py[cod]
-*.egg-info/
-
-# OS
 .DS_Store
-
-# Local testing
 *.zip
-**/test-results.md

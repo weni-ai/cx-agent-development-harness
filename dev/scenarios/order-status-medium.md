@@ -5,7 +5,7 @@ FinalResponse. Needs a Weni project with Retail Setup connected to a VTEX store.
 
 ## Prompt
 
-/new-agent Build an "order-status" collaborator for WhatsApp. Given a VTEX order ID it
+/weni:new-agent Build an "order-status" collaborator for WhatsApp. Given a VTEX order ID it
 fetches the order through the Retail Setup proxy and replies with the status, items,
 and estimated delivery date, then sends a quick-reply broadcast with "Track another
 order" and "Talk to a human". It must never reveal another customer's order.

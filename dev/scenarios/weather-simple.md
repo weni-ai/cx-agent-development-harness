@@ -5,7 +5,7 @@ credentials: Open-Meteo needs no API key.
 
 ## Prompt
 
-/new-agent Build a "weather-advisor" collaborator for WhatsApp. When the contact asks
+/weni:new-agent Build a "weather-advisor" collaborator for WhatsApp. When the contact asks
 about the weather in a city, it looks up the current weather with the free Open-Meteo
 APIs (geocoding to resolve the city, then the forecast endpoint) and recommends what
 to wear. It does not use VTEX or Retail Setup. It answers in English.

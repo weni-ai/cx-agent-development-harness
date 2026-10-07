@@ -5,7 +5,7 @@ Exercises edit mode (delta plan, targeted re-tests). Run it in a sandbox where
 
 ## Prompt
 
-/edit-agent weather-advisor Add a tool that returns a 3-day forecast when the contact
+/weni:edit-agent weather-advisor Add a tool that returns a 3-day forecast when the contact
 asks about the coming days, and recommend what to pack for a short trip.
 
 ## Watch for

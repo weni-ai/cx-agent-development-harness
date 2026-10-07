@@ -1,7 +1,5 @@
 """The readiness gate and its enforcement in init_run.py."""
 
-import json
-
 from helpers import HarnessProject
 
 
@@ -28,10 +26,16 @@ class ReadinessStates(HarnessProject):
         self.script("check_ready.py")
         self.assertEqual((self.tmp / "weni.log").read_text().count("project list"), 1)
 
-    def test_hook_never_fails_and_cursor_gets_json(self):
-        result = self.script("check_ready.py", "--hook", "cursor", list_out="please login first")
+    def test_hook_is_silent_outside_weni_projects(self):
+        result = self.script("check_ready.py", "--hook")
+        self.assertEqual((result.returncode, result.stdout.strip()), (0, ""))
+
+    def test_hook_reports_without_network_in_weni_projects(self):
+        self.add_agent()
+        result = self.script("check_ready.py", "--hook", project_out="Current project: None")
         self.assertEqual(result.returncode, 0)
-        self.assertIn("AUTH_REQUIRED", json.loads(result.stdout)["additional_context"])
+        self.assertIn("PROJECT_NOT_SELECTED", result.stdout)
+        self.assertNotIn("project list", (self.tmp / "weni.log").read_text())
 
 
 class NotLoggedIn(HarnessProject):
@@ -43,7 +47,7 @@ class NotLoggedIn(HarnessProject):
     def test_init_run_refuses_without_login(self):
         result = self.script("init_run.py", "feature", "--target", "demo")
         self.assertEqual(result.returncode, 10)
-        self.assertEqual(list((self.root / ".harness" / "runs").iterdir()), [])
+        self.assertFalse((self.root / ".harness" / "runs").exists() and any((self.root / ".harness" / "runs").iterdir()))
 
     def test_resume_check_does_not_need_login(self):
         self.assertIn("NO_OPEN_RUN", self.script("init_run.py", "--latest-open").stdout)

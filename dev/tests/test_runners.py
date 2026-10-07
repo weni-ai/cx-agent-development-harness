@@ -20,7 +20,7 @@ DEFINITION = """agents:
 """
 
 
-@unittest.skipUnless(HAS_YAML, "needs PyYAML (run ./harness setup, then ./harness test)")
+@unittest.skipUnless(HAS_YAML, "needs PyYAML (create the repo .venv: python3 -m venv .venv && .venv/bin/pip install pyyaml)")
 class ToolTests(HarnessProject):
     def test_traceback_with_exit_zero_is_a_failure(self):
         self.add_agent(definition=DEFINITION)

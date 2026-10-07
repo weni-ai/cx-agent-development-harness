@@ -1,4 +1,4 @@
-"""Shared fixtures: a throwaway project with the real harness scripts and a fake `weni`."""
+"""Shared fixtures: a throwaway project, the real plugin scripts, and a fake `weni`."""
 
 import json
 import os
@@ -10,6 +10,7 @@ import unittest
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
+SCRIPTS = REPO / "plugin" / "scripts"
 
 # The fake CLI answers from environment variables so each test scripts its behavior.
 FAKE_WENI = """#!{python}
@@ -27,7 +28,7 @@ sys.exit(int(os.environ.get("FAKE_" + key + "_RC", "0")))
 
 
 class HarnessProject(unittest.TestCase):
-    """Base test case: builds tmp/project with .harness/scripts and a fake .venv/bin/weni."""
+    """Base test case: an empty tmp project with a fake .venv/bin/weni; scripts run from the plugin."""
 
     logged_in = True
     install_weni = True
@@ -35,9 +36,7 @@ class HarnessProject(unittest.TestCase):
     def setUp(self):
         self.tmp = Path(tempfile.mkdtemp())
         self.root = self.tmp / "project"
-        shutil.copytree(REPO / ".harness" / "scripts", self.root / ".harness" / "scripts",
-                        ignore=shutil.ignore_patterns("__pycache__"))
-        (self.root / ".harness" / "runs").mkdir()
+        self.root.mkdir()
         self.home = self.tmp / "home"
         self.home.mkdir()
         if self.logged_in:
@@ -50,6 +49,7 @@ class HarnessProject(unittest.TestCase):
         self.env = {
             **os.environ,
             "HOME": str(self.home),
+            "CLAUDE_PROJECT_DIR": str(self.root),
             "FAKE_WENI_LOG": str(self.tmp / "weni.log"),
             "FAKE_PROJECT_OUT": "Current project: 8f2a401c (Demo)",
         }
@@ -60,7 +60,7 @@ class HarnessProject(unittest.TestCase):
     def script(self, name, *args, **fake):
         """Run a harness script inside the temp project; fake=FAKE_* overrides."""
         env = {**self.env, **{f"FAKE_{key.upper()}": str(value) for key, value in fake.items()}}
-        return subprocess.run([sys.executable, str(self.root / ".harness" / "scripts" / name), *args],
+        return subprocess.run([sys.executable, str(SCRIPTS / name), *args],
                               cwd=str(self.root), env=env, capture_output=True, text=True)
 
     def add_agent(self, slug="demo", definition="agents: {}\n"):

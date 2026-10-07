@@ -1,13 +1,15 @@
-"""Disposable, partner-like copies of the harness for testing changes end to end.
+"""Disposable partner-like projects for testing plugin changes end to end.
 
-    ./harness sandbox new <scenario>        copy + `./harness init` + git init, print the prompt
-    ./harness sandbox list                  show sandboxes with age and size
-    ./harness sandbox clean [--older-than DAYS]
+    dev/harness sandbox new <scenario>        empty git project, prints how to open it
+    dev/harness sandbox list                  show sandboxes with age and size
+    dev/harness sandbox clean [--older-than DAYS]
 
-Sandboxes live only under ~/.harness-sandboxes/ (override: HARNESS_SANDBOX_ROOT) and
-carry a `.harness-sandbox` marker; `clean` deletes nothing without that marker. The
-copy symlinks this repo's .venv, and the Weni login lives in ~/.weni_cli, so a new
-sandbox needs no reinstall and no new login.
+A sandbox is an empty folder (like a partner's new project) opened with
+`claude --plugin-dir <repo>/plugin`, so it always runs your working copy of the
+plugin. Sandboxes live only under ~/.harness-sandboxes/ (override:
+HARNESS_SANDBOX_ROOT) and carry a `.harness-sandbox` marker; `clean` deletes
+nothing without it. The repo's .venv is symlinked and the Weni login lives in
+~/.weni_cli, so a new sandbox needs no reinstall and no new login.
 """
 
 import argparse
@@ -24,27 +26,6 @@ SCENARIOS = ROOT / "dev" / "scenarios"
 SANDBOX_ROOT = Path(os.environ.get("HARNESS_SANDBOX_ROOT", Path.home() / ".harness-sandboxes"))
 MARKER = ".harness-sandbox"
 WARN_ABOVE = 3
-ROOT_SKIP = {".git", ".venv", "agents"}  # only at the repo root (.claude/agents must be copied)
-ANYWHERE_SKIP = {"__pycache__", ".DS_Store", ".maintainer"}
-
-
-def sandboxes():
-    """Return every marked sandbox directory, oldest first."""
-    if not SANDBOX_ROOT.exists():
-        return []
-    return sorted(path for path in SANDBOX_ROOT.iterdir() if (path / MARKER).exists())
-
-
-def ignore(directory, names):
-    """copytree filter: skip VCS, venv, work products, and old runs."""
-    skipped = {name for name in names if name in ANYWHERE_SKIP}
-    if Path(directory).resolve() == ROOT:
-        skipped |= {name for name in names if name in ROOT_SKIP}
-    if Path(directory).resolve() == (ROOT / ".harness" / "runs").resolve():
-        skipped |= {name for name in names if name != ".gitkeep"}
-    return skipped
-
-
 def cmd_new(args):
     scenario = SCENARIOS / f"{args.scenario}.md"
     if not scenario.exists():
@@ -52,25 +33,19 @@ def cmd_new(args):
         print(f"Unknown scenario '{args.scenario}'. Available: {available}")
         return 2
     dest = SANDBOX_ROOT / f"{datetime.now():%Y%m%d-%H%M%S}-{args.scenario}"
-    shutil.copytree(ROOT, dest, ignore=ignore)
+    dest.mkdir(parents=True)
+    (dest / MARKER).write_text(f"source={ROOT}\nscenario={args.scenario}\n", encoding="utf-8")
     if (ROOT / ".venv").exists():
         (dest / ".venv").symlink_to(ROOT / ".venv", target_is_directory=True)
-    (dest / MARKER).write_text(f"source={ROOT}\nscenario={args.scenario}\n", encoding="utf-8")
-
-    if subprocess.call([sys.executable, "harness", "init", "--yes"], cwd=str(dest)) != 0:
-        print(f"`./harness init` failed inside {dest}")
-        return 1
-    git = ["git", "-c", "user.name=harness-sandbox", "-c", "user.email=sandbox@localhost"]
+    (dest / ".gitignore").write_text(f"{MARKER}\n", encoding="utf-8")
     subprocess.call(["git", "init", "-q"], cwd=str(dest))
-    subprocess.call([*git, "add", "-A"], cwd=str(dest))
-    subprocess.call([*git, "commit", "-qm", "sandbox baseline"], cwd=str(dest))
 
-    print(f"\nSandbox ready: {dest}\n")
+    print(f"Sandbox ready: {dest}\n")
     print(scenario.read_text(encoding="utf-8"))
-    print(f"Open it:  cd {dest} && claude      (or open the folder in Cursor)")
-    print("When done: come back to the harness repo, describe what failed, then `./harness sandbox clean`.")
+    print(f"Open it:   cd {dest} && claude --plugin-dir {ROOT / 'plugin'}")
+    print("When done: describe what failed in the harness repo session, then `dev/harness sandbox clean`.")
     if len(sandboxes()) > WARN_ABOVE:
-        print(f"\nNote: {len(sandboxes())} sandboxes exist. Run `./harness sandbox clean`.")
+        print(f"\nNote: {len(sandboxes())} sandboxes exist. Run `dev/harness sandbox clean`.")
     return 0
 
 
@@ -105,7 +80,7 @@ def cmd_clean(args):
 
 
 def main():
-    parser = argparse.ArgumentParser(prog="harness sandbox", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser = argparse.ArgumentParser(prog="dev/harness sandbox", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = parser.add_subparsers(dest="command", required=True)
     new = sub.add_parser("new", help="Create a sandbox for a scenario")
     new.add_argument("scenario", help="Scenario name from dev/scenarios/")

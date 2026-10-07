@@ -1,0 +1,12 @@
+{
+  "name": "weni-ai",
+  "description": "VTEX CX Platform (Weni) plugins for Claude Code",
+  "owner": { "name": "VTEX CX Platform" },
+  "plugins": [
+    {
+      "name": "weni",
+      "source": "./plugin",
+      "description": "Gated pipeline to build, test, review, and document Weni AI agents"
+    }
+  ]
+}
