@@ -41,6 +41,12 @@ Read `${CLAUDE_PLUGIN_ROOT}/skills/weni-agents/SKILL.md` ("Agent Evaluation" sec
 5. Write `<RUN_DIR>/artifacts/03-tests.md`: files written, status per tool, open
    concerns (never inside the YAML files).
 
+**Edit mode.** Write or update tests only for the tools the delta plan adds or changes,
+plus tools whose `test_definition.yaml` is still the implementer's placeholder; keep
+the other tools' tests as they are. Add eval scenarios for the change and keep the
+existing ones. The tool-test gate still runs every tool: if an untouched tool fails,
+report it as pre-existing in `03-tests.md` instead of changing its code.
+
 Every `description` in the YAML files is ONE sentence under ~120 characters stating
 input and expected outcome.
 

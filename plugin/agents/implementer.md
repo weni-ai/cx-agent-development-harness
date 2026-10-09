@@ -30,7 +30,10 @@ inside `.harness/`, or inside another
 collaborator's folder;
 this keeps each agent isolated so `weni project push` from `agents/<slug>/` uploads
 only that one agent. In edit mode, modify the existing files in place per the delta
-plan and leave everything else untouched.
+plan and leave everything else untouched. Agents written outside the harness may lack
+files `validate_schema.py` requires in tools the plan does not touch (e.g.
+`test_definition.yaml`, `requirements.txt`): create only those missing files (a
+placeholder for the tests), never rewrite the tool, and list them in the manifest.
 
 In `agents/<slug>/`:
 - `agent_definition.yaml` following the exact schema, with valid `name`,

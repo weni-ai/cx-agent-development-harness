@@ -42,7 +42,13 @@ exists). Never pack several agents into one definition.
 1. **Resume.** `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/init_run.py" --latest-open`. If it
    prints a run dir, read its `STATE.md` and continue from the first
    `pending`/`in-progress` phase.
-2. **New work.** List `agents/`. If the request is ambiguous, ask whether to edit an
+2. **Find agents.** Run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/discover_agents.py"`.
+   On `LOOSE_AGENTS_FOUND` (agents outside `agents/`, e.g. sibling folders or a
+   definition at the root), run `adopt_agent.py --all --dry-run`, show the plan, and ask
+   once to move them all into `agents/`; only after the user confirms run
+   `adopt_agent.py --all`. Show `INVALID`/`SKIPPED` lines with their reason; never fix
+   or move those yourself.
+3. **New work.** From the `IN_PLACE` agents: if the request is ambiguous, ask whether to edit an
    existing collaborator (which) or create a new one (pick a short kebab-case slug).
    Then run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/init_run.py" "<feature>" --target <slug> --mode <new|edit>`.
    In a folder that was never set up (no `/weni:setup`) it sets everything up by
@@ -53,6 +59,7 @@ exists). Never pack several agents into one definition.
    - `PROJECT_NOT_SELECTED` → run `printf 'q\n' | .venv/bin/weni project list`, ask
      the user which project, run `.venv/bin/weni project use <uuid>`.
    - `PROBE_ERROR` / install failure → show the output to the user.
+   - `AGENT_NOT_FOUND` (edit mode) → go back to step 2; never create the agent.
    No pipeline starts until the run exists.
 
 ## Phases
@@ -70,8 +77,8 @@ For each phase: mark it `in-progress`, dispatch the subagent, check the gate, ma
 | 5 | Docs | docs-writer | `05-docs.md` + `agents/<slug>/README.md` | README written |
 
 **0 Intake.** Record goal, slug, mode, channels, Retail Setup proxy vs. direct VTEX
-credentials, and constraints. In edit mode the user has copied the agent into
-`agents/<slug>/`; record its current structure as a baseline.
+credentials, and constraints. In edit mode the agent is already at `agents/<slug>/`
+(adopted in Start if needed); record its current structure as a baseline.
 
 **1 Plan.** If the planner returns open questions, ask the user, add the answers to
 `00-intake.md`, and re-dispatch. Show the plan and get explicit approval.

@@ -9,6 +9,9 @@ it adds the harness entries to .gitignore and, on first use, creates .venv and
 installs weni-cli. It then refuses (with the gate's exit code) unless the Weni CLI
 is READY (logged in, project selected). See check_ready.py.
 
+In edit mode the target must already be at agents/<slug>/ (AGENT_NOT_FOUND
+otherwise; agents elsewhere are moved there with adopt_agent.py).
+
 Usage:
     python3 ${CLAUDE_PLUGIN_ROOT}/scripts/init_run.py "build order lookup agent" --target order-bot
     python3 ${CLAUDE_PLUGIN_ROOT}/scripts/init_run.py "add tracking tool" --target order-bot --mode edit
@@ -26,6 +29,7 @@ from datetime import datetime
 # Local
 from _common import (
     PHASES,
+    agents_root,
     latest_open_run,
     runs_dir,
     save_state,
@@ -98,6 +102,15 @@ def main() -> None:
 
     if not args.description:
         parser.error("a feature description is required when not using --latest-open")
+    if args.mode == "edit":
+        if not args.target:
+            parser.error("--mode edit requires --target <slug>")
+        if not (agents_root() / args.target / "agent_definition.yaml").is_file():
+            print(
+                f"AGENT_NOT_FOUND agents/{args.target}/agent_definition.yaml does not exist. "
+                "Run discover_agents.py; if the agent is elsewhere, move it with adopt_agent.py."
+            )
+            raise SystemExit(1)
 
     ensure_gitignore()
     ensure_deploy_ask_rule()

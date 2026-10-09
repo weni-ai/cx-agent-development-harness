@@ -29,6 +29,7 @@ from pathlib import Path
 
 # Local
 from _common import agents_root, latest_open_run, project_root, runs_dir, venv_bin
+from discover_agents import find_definitions
 from update_check import update_notice
 
 EXIT_CODES = {
@@ -133,9 +134,19 @@ def ensure_ready() -> None:
         raise SystemExit(EXIT_CODES[state])
 
 
+def loose_agents() -> list[str]:
+    """Folders outside agents/<slug>/ that hold an agent definition (no YAML parsing)."""
+    root = project_root()
+    return [
+        "." if folder == root else folder.relative_to(root).as_posix()
+        for folder in find_definitions(root)
+        if folder.parent != agents_root()
+    ]
+
+
 def is_harness_project() -> bool:
-    """True when the session's folder already holds Weni agents or harness runs."""
-    return runs_dir().exists() or any(agents_root().glob("*/agent_definition.yaml"))
+    """True when the session's folder holds Weni agents (anywhere) or harness runs."""
+    return runs_dir().exists() or bool(find_definitions(project_root()))
 
 
 def hook_message() -> str:
@@ -147,6 +158,12 @@ def hook_message() -> str:
     run_dir = latest_open_run()
     if run_dir is not None:
         lines.append(f"[weni] Open run: {run_dir}. To continue it, follow the weni:pipeline skill.")
+    loose = loose_agents()
+    if loose:
+        lines.append(
+            f"[weni] {len(loose)} agent(s) outside agents/: {', '.join(loose[:5])}. Before other Weni work, "
+            "offer to move them all into agents/ (weni:pipeline Start, step 2: discover_agents.py, adopt_agent.py)."
+        )
     return "\n".join(lines)
 
 

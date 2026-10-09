@@ -5,6 +5,13 @@ Breaking / New / Changed / Fixed. Versions follow semver.
 
 ## Unreleased
 
+### New
+- Work on agents you already have, wherever they are: `/weni:setup`, opening Claude in
+  the folder, and `/weni:new-agent`/`/weni:edit-agent` now find every agent (sibling
+  folders, a definition at the root) and offer to move them all into `agents/` in one
+  step, so you no longer copy files by hand. Edits re-test only what changed and report
+  failures in untouched tools as pre-existing.
+
 ## 2.3.0 — 2026-10-09
 
 ### New

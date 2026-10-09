@@ -19,6 +19,7 @@ import json
 import subprocess
 import sys
 import venv
+from pathlib import Path
 
 # Local
 from _common import project_root, venv_bin
@@ -89,12 +90,19 @@ def ensure_deploy_ask_rule() -> None:
     print(f"Added to .claude/settings.local.json: permissions.ask {DEPLOY_ASK_RULE}")
 
 
+def report_agents() -> None:
+    """Print where this folder's agents are (discover_agents.py, run with the .venv's PyYAML)."""
+    script = Path(__file__).resolve().parent / "discover_agents.py"
+    subprocess.run([str(venv_bin("python")), str(script)], cwd=str(project_root()), check=False)
+
+
 def main() -> None:
     """Install the environment and report readiness."""
     ensure_gitignore()
     ensure_deploy_ask_rule()
     ensure_venv()
     install_cli()
+    report_agents()
     ensure_ready()
     print("READY")
 
