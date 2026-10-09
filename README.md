@@ -25,7 +25,8 @@ clone, run in that folder's terminal:
 `.claude/settings.json`; commit that file).
 
 Then turn on updates: `/plugin` → **Marketplaces** → `weni-ai` → **Enable auto-update**
-(or update manually with `/plugin marketplace update weni-ai`).
+(or update manually with `/plugin marketplace update weni-ai`). When a new
+version is out, Claude also tells you when you open it in a Weni project.
 
 ## Build your first agent
 

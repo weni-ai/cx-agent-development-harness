@@ -21,6 +21,7 @@ from __future__ import annotations
 
 # Standard library
 import argparse
+import json
 import re
 import subprocess
 import time
@@ -28,6 +29,7 @@ from pathlib import Path
 
 # Local
 from _common import agents_root, latest_open_run, project_root, runs_dir, venv_bin
+from update_check import update_notice
 
 EXIT_CODES = {
     "READY": 0,
@@ -155,7 +157,13 @@ def main() -> None:
     args = parser.parse_args()
 
     if args.hook:
-        print(hook_message())
+        context = hook_message()
+        notice = update_notice() if context else ""
+        if notice:  # JSON so the user sees the notice; Claude still gets the context
+            print(json.dumps({"systemMessage": notice, "hookSpecificOutput": {
+                "hookEventName": "SessionStart", "additionalContext": f"{context}\n[weni] {notice}"}}))
+        else:
+            print(context)
         return  # hooks never fail the session; the real gate is init_run.py
 
     state, output = probe()

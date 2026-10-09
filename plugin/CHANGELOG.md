@@ -5,6 +5,10 @@ Breaking / New / Changed / Fixed. Versions follow semver.
 
 ## Unreleased
 
+### New
+- When you open Claude in a Weni project, it tells you if a newer `weni` version is
+  published (checked once a day) and how to update.
+
 ## 2.2.0 — 2026-10-09
 
 ### New

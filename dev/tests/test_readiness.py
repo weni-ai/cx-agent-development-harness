@@ -71,3 +71,43 @@ class FolderPreparation(HarnessProject):
     def test_init_run_adds_gitignore_entries(self):
         self.new_run()
         self.assertIn(".harness/", (self.root / ".gitignore").read_text())
+
+
+class UpdateNotice(HarnessProject):
+    """The session-start hook shows a notice when the cached published version is newer."""
+
+    def hook(self, latest, **env):
+        import json
+        import time
+        self.add_agent()
+        cache = self.root / ".harness" / "update_check.json"
+        cache.parent.mkdir(parents=True, exist_ok=True)
+        cache.write_text(json.dumps({"checked_at": time.time(), "latest": latest}))
+        self.env.update(env)
+        result = self.script("check_ready.py", "--hook")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        return result.stdout
+
+    def test_newer_version_is_shown_to_the_user(self):
+        import json
+        out = json.loads(self.hook("99.0.0"))
+        self.assertIn("weni 99.0.0 is available", out["systemMessage"])
+        context = out["hookSpecificOutput"]["additionalContext"]
+        self.assertIn("Readiness", context)
+        self.assertIn("99.0.0", context)
+
+    def test_same_version_is_silent(self):
+        import json
+        from helpers import REPO
+        current = json.loads((REPO / "plugin" / ".claude-plugin" / "plugin.json").read_text())["version"]
+        self.assertNotIn("is available", self.hook(current))
+
+    def test_older_version_is_silent(self):
+        self.assertNotIn("is available", self.hook("0.0.1"))
+
+    def test_disabled_by_env(self):
+        self.assertNotIn("is available", self.hook("99.0.0", DISABLE_AUTOUPDATER="1"))
+
+    def test_no_marketplace_no_cache_is_silent(self):
+        self.add_agent()
+        self.assertNotIn("is available", self.script("check_ready.py", "--hook").stdout)
