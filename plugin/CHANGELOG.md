@@ -5,6 +5,8 @@ Breaking / New / Changed / Fixed. Versions follow semver.
 
 ## Unreleased
 
+## 2.4.0 — 2026-10-09
+
 ### New
 - Work on agents you already have, wherever they are: `/weni:setup`, opening Claude in
   the folder, and `/weni:new-agent`/`/weni:edit-agent` now find every agent (sibling
