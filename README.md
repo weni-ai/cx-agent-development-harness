@@ -65,6 +65,14 @@ the eval. To deploy yourself:
 cd agents/<slug> && ../../.venv/bin/weni project push agent_definition.yaml
 ```
 
+**Deploys always ask for permission, even in auto mode.** Setup adds
+`"Bash(python3 *scripts/deploy.py*)"` to `permissions.ask` in your git-ignored
+`.claude/settings.local.json`, and the plugin has a hook that asks too. Otherwise the auto mode
+classifier blocks the push as a production deploy, even after you approve it in the chat. To
+stop being asked, remove that rule. The hook keeps asking, though, because Claude Code
+can't turn off a single plugin hook; you can only use `"disableAllHooks": true`, which
+turns off every hook. Claude still asks you in the chat before every deploy either way.
+
 ## Commands
 
 | Command | Does |

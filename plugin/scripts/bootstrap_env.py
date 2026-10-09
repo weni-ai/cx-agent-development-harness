@@ -1,4 +1,4 @@
-"""Prepare the user's project: .venv with weni-cli, a safe .gitignore, then the readiness gate.
+"""Prepare the user's project: .venv with weni-cli, a safe .gitignore, the deploy ask rule, then the readiness gate.
 
 init_run.py calls these helpers automatically on the first run in a folder; running
 this script directly is only needed to repair or upgrade the environment.
@@ -15,6 +15,7 @@ Usage:
 from __future__ import annotations
 
 # Standard library
+import json
 import subprocess
 import sys
 import venv
@@ -26,7 +27,15 @@ from check_ready import ensure_ready
 EXIT_SETUP_ERROR = 30
 
 # Never commit the venv, local secrets, run history, or verbose test output.
-GITIGNORE_ENTRIES = (".venv/", "**/.env", "**/.globals", ".harness/", "**/test-results.md", "__pycache__/")
+GITIGNORE_ENTRIES = (
+    ".venv/", "**/.env", "**/.globals", ".harness/", "**/test-results.md", "__pycache__/",
+    ".claude/settings.local.json",
+)
+
+# deploy.py publishes to the live Manager. An ask rule makes Claude Code prompt for it
+# even in auto mode, whose classifier would otherwise deny it as a production deploy.
+# Independent of the plugin version in the cache path and of the quotes around it.
+DEPLOY_ASK_RULE = "Bash(python3 *scripts/deploy.py*)"
 
 
 def ensure_venv() -> None:
@@ -62,9 +71,28 @@ def ensure_gitignore() -> None:
         print(f"Added to .gitignore: {', '.join(missing)}")
 
 
+def ensure_deploy_ask_rule() -> None:
+    """Merge the deploy ask rule into .claude/settings.local.json, keeping everything else."""
+    settings_path = project_root() / ".claude" / "settings.local.json"
+    try:
+        settings = json.loads(settings_path.read_text(encoding="utf-8")) if settings_path.exists() else {}
+    except json.JSONDecodeError:
+        print(f"Warning: {settings_path} is not valid JSON; add \"{DEPLOY_ASK_RULE}\" to permissions.ask yourself.")
+        return
+    permissions = settings.setdefault("permissions", {})
+    ask = permissions.setdefault("ask", [])
+    if DEPLOY_ASK_RULE in ask:
+        return
+    ask.append(DEPLOY_ASK_RULE)
+    settings_path.parent.mkdir(parents=True, exist_ok=True)
+    settings_path.write_text(json.dumps(settings, indent=2) + "\n", encoding="utf-8")
+    print(f"Added to .claude/settings.local.json: permissions.ask {DEPLOY_ASK_RULE}")
+
+
 def main() -> None:
     """Install the environment and report readiness."""
     ensure_gitignore()
+    ensure_deploy_ask_rule()
     ensure_venv()
     install_cli()
     ensure_ready()

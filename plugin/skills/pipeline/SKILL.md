@@ -100,6 +100,12 @@ credentials, and constraints. In edit mode the user has copied the agent into
    - If `--check` printed `EVAL_READY` (already deployed and current), offer to run it directly.
    - If the user says the current local version is already deployed outside the harness:
      `deploy.py --target <slug> --record-only`.
+   - If `deploy.py` comes back denied by permissions (auto mode classifier or the
+     user), do not try any other route. Tell the user why it was blocked and offer:
+     run it themselves with `! python3 "<resolved plugin root>/scripts/deploy.py" --target <slug>`
+     (print the real path), or switch the permission mode and ask again. After they
+     run it, confirm `run_eval.py --run-dir <RUN_DIR> --check` prints `EVAL_READY`
+     before evaluating.
 
    **Eval loop:**
    1. `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/run_eval.py" --run-dir <RUN_DIR>`.
@@ -141,7 +147,9 @@ python3 "${CLAUDE_PLUGIN_ROOT}/scripts/update_state.py" --latest --focus "..." -
 
 - Never run `weni login` or any interactive auth command.
 - Never deploy except through `deploy.py`, and only after the user confirms in that
-  same turn (each redeploy is a new confirmation). Deploying is an optional step of
+  same turn (each redeploy is a new confirmation). If permissions deny it, never
+  work around it (no direct `weni project push`, no retries): hand the command to
+  the user as described in the eval step. Deploying is an optional step of
   the eval; the pipeline itself ends at Docs.
 - Never run `run_eval.py` without the user's confirmation for that eval loop, and
   never against an agent that is not deployed and current (the script refuses).

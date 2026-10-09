@@ -31,7 +31,7 @@ from _common import (
     save_state,
     slugify,
 )
-from bootstrap_env import ensure_gitignore, ensure_venv, install_cli
+from bootstrap_env import ensure_deploy_ask_rule, ensure_gitignore, ensure_venv, install_cli
 from check_ready import ensure_ready, probe
 
 
@@ -100,6 +100,7 @@ def main() -> None:
         parser.error("a feature description is required when not using --latest-open")
 
     ensure_gitignore()
+    ensure_deploy_ask_rule()
     if probe(validate_token=False)[0] == "NOT_INSTALLED":
         print("First run in this folder: installing weni-cli into .venv (about 1 minute) ...", flush=True)
         ensure_venv()

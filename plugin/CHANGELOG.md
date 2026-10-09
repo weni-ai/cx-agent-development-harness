@@ -5,6 +5,12 @@ Breaking / New / Changed / Fixed. Versions follow semver.
 
 ## Unreleased
 
+### Fixed
+- In auto mode, deploying for the eval now asks for your permission instead of being
+  blocked as a production deploy (setup adds an ask rule to the git-ignored
+  `.claude/settings.local.json`); if it is still denied, Claude gives you the exact
+  command to run yourself.
+
 ## 2.1.1 — 2026-10-07
 
 ### Fixed
