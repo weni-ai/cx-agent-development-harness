@@ -161,7 +161,7 @@ def hook_message() -> str:
     loose = loose_agents()
     if loose:
         lines.append(
-            f"[weni] {len(loose)} agent(s) outside agents/: {', '.join(loose[:5])}. Before other Weni work, "
+            f"[weni] {len(loose)} folder(s) with agent_definition.yaml outside agents/: {', '.join(loose[:5])}. Before other Weni work, "
             "offer to move them all into agents/ (weni:pipeline Start, step 2: discover_agents.py, adopt_agent.py)."
         )
     return "\n".join(lines)

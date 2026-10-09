@@ -4,7 +4,8 @@
     dev/harness sandbox list                  show sandboxes with age and size
     dev/harness sandbox clean [--older-than DAYS]
 
-A sandbox is an empty folder (like a partner's new project) opened with
+A sandbox is an empty folder (like a partner's new project; a scenario with a
+`<name>.seed.py` gets pre-existing files) opened with
 `claude --plugin-dir <repo>/plugin`, so it always runs your working copy of the
 plugin. Sandboxes live only under ~/.harness-sandboxes/ (override:
 HARNESS_SANDBOX_ROOT) and carry a `.harness-sandbox` marker; `clean` deletes
@@ -47,8 +48,13 @@ def cmd_new(args):
     (dest / MARKER).write_text(f"source={ROOT}\nscenario={args.scenario}\n", encoding="utf-8")
     if (ROOT / ".venv").exists():
         (dest / ".venv").symlink_to(ROOT / ".venv", target_is_directory=True)
-    (dest / ".gitignore").write_text(f"{MARKER}\n", encoding="utf-8")
+    (dest / ".gitignore").write_text(f"{MARKER}\n.venv\n", encoding="utf-8")
     subprocess.call(["git", "init", "-q"], cwd=str(dest))
+    seed = SCENARIOS / f"{args.scenario}.seed.py"
+    if seed.exists():  # pre-existing partner files; committed so later moves show up as renames
+        subprocess.check_call([sys.executable, str(seed)], cwd=str(dest))
+        subprocess.call(["git", "add", "-A"], cwd=str(dest))
+        subprocess.call(["git", "commit", "-q", "-m", f"seed: {args.scenario}"], cwd=str(dest))
 
     print(f"Sandbox ready: {dest}\n")
     print(scenario.read_text(encoding="utf-8"))

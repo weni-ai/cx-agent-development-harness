@@ -108,7 +108,7 @@ class Discovery(HarnessProject):
     def test_session_start_mentions_loose_agents(self):
         self.make("weather")
         result = self.script("check_ready.py", "--hook")
-        self.assertIn("1 agent(s) outside agents/: weather", result.stdout)
+        self.assertIn("1 folder(s) with agent_definition.yaml outside agents/: weather", result.stdout)
 
     def test_session_start_is_silent_outside_weni_projects(self):
         self.assertEqual(self.script("check_ready.py", "--hook").stdout.strip(), "")
