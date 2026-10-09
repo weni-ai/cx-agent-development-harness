@@ -5,6 +5,8 @@ Breaking / New / Changed / Fixed. Versions follow semver.
 
 ## Unreleased
 
+## 2.2.0 — 2026-10-09
+
 ### New
 - The eval now requires the agent to be assigned to the project's Manager
   (`EVAL_NOT_ASSIGNED`), so rounds are no longer lost to the Manager answering. After
