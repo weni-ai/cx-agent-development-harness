@@ -5,6 +5,13 @@ Breaking / New / Changed / Fixed. Versions follow semver.
 
 ## Unreleased
 
+### New
+- The eval now requires the agent to be assigned to the project's Manager
+  (`EVAL_NOT_ASSIGNED`), so rounds are no longer lost to the Manager answering. After
+  deploying, Claude assigns it on the Weni platform with Claude in Chrome, asking you
+  only before the final Finish click; agents with confidential credentials are assigned
+  by you with the steps Claude gives you.
+
 ### Fixed
 - In auto mode, deploying for the eval now asks for your permission instead of being
   blocked as a production deploy (setup adds an ask rule to the git-ignored

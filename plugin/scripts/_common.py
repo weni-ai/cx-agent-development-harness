@@ -127,24 +127,71 @@ def load_deployments() -> dict:
     return json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
 
 
+def save_deployments(records: dict) -> None:
+    """Persist the deployment records."""
+    deployments_path().parent.mkdir(parents=True, exist_ok=True)
+    deployments_path().write_text(json.dumps(records, indent=2), encoding="utf-8")
+
+
 def record_deployment(slug: str, project: str) -> None:
-    """Record that `slug`, as it is on disk now, is deployed to `project`."""
+    """Record that `slug`, as it is on disk now, is deployed to `project`.
+
+    A push does not change whether the agent is assigned to the Manager, so the
+    recorded assignment is kept.
+    """
     records = load_deployments()
-    records[slug] = {
+    record = records.get(slug, {})
+    record.update({
         "project": project,
         "hash": deployable_hash(slug),
         "pushed_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-    }
-    deployments_path().parent.mkdir(parents=True, exist_ok=True)
-    deployments_path().write_text(json.dumps(records, indent=2), encoding="utf-8")
+    })
+    records[slug] = record
+    save_deployments(records)
 
 
 def deployment_status(slug: str, project: str) -> str:
     """Return DEPLOYED, NOT_DEPLOYED (never pushed here), or STALE (local changes since)."""
     record = load_deployments().get(slug)
-    if not record or record["project"] != project:
+    if not record or record.get("project") != project or "hash" not in record:
         return "NOT_DEPLOYED"
     return "DEPLOYED" if record["hash"] == deployable_hash(slug) else "STALE"
+
+
+ASSIGNMENT_STATUSES = ("assigned", "unassigned")
+ASSIGNMENT_SOURCES = ("harness", "user", "preexisting")
+
+
+def record_assignment(slug: str, project: str, status: str, by: str, run_id: str) -> dict:
+    """Record whether `slug` is assigned to the Manager of `project` (overwrites, never appends).
+
+    Requires a deployment of `slug` to that same project: assigning on the platform
+    needs the pushed agent, and a pre-deploy record could make a later eval look ready.
+    """
+    records = load_deployments()
+    record = records.get(slug) or {}
+    if record.get("project") != project or "hash" not in record:
+        raise SystemExit(f"{slug} is not recorded as deployed to project {project}; run deploy.py first.")
+    record["assignment"] = {
+        "status": status,
+        "by": by,
+        "run_id": run_id,
+        "project": project,
+        "at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    }
+    save_deployments(records)
+    return record["assignment"]
+
+
+def is_assigned(slug: str, project: str) -> bool:
+    """Return True when `slug` is recorded as assigned in `project` (other projects don't count)."""
+    assignment = (load_deployments().get(slug) or {}).get("assignment") or {}
+    return assignment.get("status") == "assigned" and assignment.get("project") == project
+
+
+def platform_session_path() -> Path:
+    """Return the file that opens a browser session for the Chrome guard hook."""
+    return project_root() / ".harness" / "platform_session.json"
 
 
 def venv_bin(name: str) -> Path:

@@ -8,8 +8,10 @@ the tester and holds the triage.
 `weni eval` talks to the agent DEPLOYED in the selected project, never to the local
 files. So before running, it checks the harness deployment record (deploy.py) and
 refuses with EVAL_NOT_DEPLOYED (never pushed to this project) or
-EVAL_STALE_DEPLOYMENT (local deployable files changed since the push). `--check`
-only reports that status (EVAL_READY when deployed and current).
+EVAL_STALE_DEPLOYMENT (local deployable files changed since the push). A deployed
+agent must also be assigned to the project's Manager (record_assignment.py), or
+`weni eval` only talks to the Manager: otherwise it refuses with EVAL_NOT_ASSIGNED.
+`--check` only reports that status (EVAL_READY when deployed, current and assigned).
 
 Full rounds (no --filter) are capped by --max-rounds so the eval loop always ends;
 filtered re-runs (flakiness checks) do not count toward the cap. `--void-last`
@@ -17,7 +19,8 @@ discards the latest round (e.g. the target agent never handled the conversation)
 so it does not count either.
 
 Prints one of: EVAL_PASS, EVAL_FAIL, EVAL_TIMEOUT, EVAL_ROUND_LIMIT,
-EVAL_NOT_DEPLOYED, EVAL_STALE_DEPLOYMENT, EVAL_READY, EVAL_ROUND_VOIDED.
+EVAL_NOT_DEPLOYED, EVAL_STALE_DEPLOYMENT, EVAL_NOT_ASSIGNED, EVAL_READY,
+EVAL_ROUND_VOIDED.
 
 Usage:
     python3 ${CLAUDE_PLUGIN_ROOT}/scripts/run_eval.py --run-dir <dir>
@@ -35,7 +38,7 @@ from datetime import datetime
 from pathlib import Path
 
 # Local
-from _common import agent_dir, deployment_status, latest_open_run, load_state, venv_bin
+from _common import agent_dir, deployment_status, is_assigned, latest_open_run, load_state, venv_bin
 from check_ready import current_project, ensure_ready
 
 DEFAULT_MAX_ROUNDS = 3
@@ -44,6 +47,7 @@ FAILURE_MARKERS = ("Traceback (most recent call last)",)
 EXIT_ROUND_LIMIT = 3
 EXIT_NOT_DEPLOYED = 4
 EXIT_STALE = 5
+EXIT_NOT_ASSIGNED = 6
 
 
 def resolve_run_dir(args: argparse.Namespace) -> Path:
@@ -98,7 +102,8 @@ def main() -> None:
 
     ensure_ready()
     target = args.target or load_state(run_dir).get("target")
-    deployment = deployment_status(target, current_project())
+    project = current_project()
+    deployment = deployment_status(target, project)
     if deployment != "DEPLOYED":
         status = "EVAL_NOT_DEPLOYED" if deployment == "NOT_DEPLOYED" else "EVAL_STALE_DEPLOYMENT"
         print(status)
@@ -106,6 +111,12 @@ def main() -> None:
               + ("This collaborator was never pushed to this project by the harness."
                  if deployment == "NOT_DEPLOYED" else "Local deployable files changed since the last push."))
         raise SystemExit(EXIT_NOT_DEPLOYED if deployment == "NOT_DEPLOYED" else EXIT_STALE)
+    if not is_assigned(target, project):
+        print("EVAL_NOT_ASSIGNED")
+        print(f"{target} is deployed but not recorded as assigned to the Manager of project {project}, "
+              "so `weni eval` would only talk to the Manager. Assign it (weni:platform assign, after the "
+              "user confirms) or record a manual assignment with record_assignment.py.")
+        raise SystemExit(EXIT_NOT_ASSIGNED)
     if args.check:
         print("EVAL_READY")
         return

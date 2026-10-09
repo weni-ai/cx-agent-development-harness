@@ -73,6 +73,23 @@ stop being asked, remove that rule. The hook keeps asking, though, because Claud
 can't turn off a single plugin hook; you can only use `"disableAllHooks": true`, which
 turns off every hook. Claude still asks you in the chat before every deploy either way.
 
+### Assigning the agent to the Manager
+
+`weni eval` only reaches a collaborator **assigned to the project's Manager**, and the
+Weni CLI cannot assign. After deploying, Claude does it on the platform with Claude
+in Chrome and asks you once, right before clicking Finish ("…assign <name> to the
+Manager of project <uuid>?"). Until
+then the eval refuses with `EVAL_NOT_ASSIGNED`. When the eval ends it asks whether to
+keep the agent active (deactivating keeps it deployed).
+
+- The browser never types credential values, edits the Manager, or touches other
+  agents or projects. If the agent has confidential credentials (or the Chrome
+  extension isn't connected), Claude gives you the steps and you finish it yourself.
+- In a Weni project folder, Claude in Chrome is blocked except during that step,
+  where it is limited to one tab on the project's agent pages (no keyboard
+  shortcuts, JavaScript or form filling). To turn this off, use `"disableAllHooks": true` (it also turns off
+  the deploy prompt).
+
 ## Commands
 
 | Command | Does |
@@ -90,6 +107,7 @@ Ask for "the project README" to get a root README describing all your agents.
 |---------|-----|
 | `NOT_INSTALLED` | Normal in a new folder: `/weni:setup` or `/weni:new-agent` installs everything |
 | `EVAL_NOT_DEPLOYED` | The eval tests the deployed agent: deploy it (Claude asks first) or skip the eval |
+| `EVAL_NOT_ASSIGNED` | The agent is deployed but not assigned to the Manager: let Claude assign it (it asks first) or assign it yourself and tell Claude |
 | `AUTH_REQUIRED` | `! .venv/bin/weni login` |
 | `PROJECT_NOT_SELECTED` | Claude lists your projects and asks which one to use |
 | `/weni:` commands don't appear | The plugin is disabled for this folder, usually because its `.claude/` folder was deleted. Run `claude plugin enable weni@weni-ai` (add `--scope project` if you installed it per project) and restart `claude` |

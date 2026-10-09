@@ -71,6 +71,13 @@ class HarnessProject(unittest.TestCase):
         (folder / "agent_definition.yaml").write_text(definition)
         return folder
 
+    def assign(self, slug="demo", *extra, **fake):
+        """Record the collaborator as assigned to the Manager (what weni:platform does after Finish)."""
+        result = self.script("record_assignment.py", "--target", slug, "--status", "assigned",
+                             "--by", "harness", *extra, **fake)
+        self.assertIn("ASSIGNMENT_RECORDED", result.stdout, result.stdout + result.stderr)
+        return result
+
     def new_run(self, slug="demo"):
         result = self.script("init_run.py", "demo feature", "--target", slug)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)

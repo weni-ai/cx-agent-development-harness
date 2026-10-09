@@ -43,6 +43,7 @@ class EvalRounds(HarnessProject):
         self.tests_md.write_text("tester owns this")
         deployed = self.script("deploy.py", "--target", "demo")
         self.assertIn("DEPLOY_OK", deployed.stdout, deployed.stdout + deployed.stderr)
+        self.assign()
 
     def eval(self, *args, **fake):
         return self.script("run_eval.py", "--run-dir", str(self.run_dir), *args, **fake)
@@ -88,6 +89,7 @@ class EvalNeedsDeployment(HarnessProject):
 
     def test_refuses_when_local_changes_since_push(self):
         self.script("deploy.py", "--target", "demo")
+        self.assign()
         self.assertIn("EVAL_READY", self.eval("--check").stdout)
         (self.folder / "agent_definition.yaml").write_text("agents: {changed: {}}\n")
         result = self.eval()
@@ -96,6 +98,7 @@ class EvalNeedsDeployment(HarnessProject):
 
     def test_eval_plan_edits_do_not_require_redeploy(self):
         self.script("deploy.py", "--target", "demo")
+        self.assign()
         (self.folder / "agent_evaluation.yml").write_text("tests: {}\n")
         self.assertIn("EVAL_READY", self.eval("--check").stdout)
 
@@ -110,6 +113,7 @@ class EvalNeedsDeployment(HarnessProject):
 
     def test_voided_round_does_not_count(self):
         self.script("deploy.py", "--target", "demo")
+        self.assign()
         self.eval("--max-rounds", "1", eval_rc=1)
         self.assertIn("EVAL_ROUND_VOIDED", self.eval("--void-last", "Manager answered").stdout)
         self.assertIn("EVAL_PASS", self.eval("--max-rounds", "1").stdout)

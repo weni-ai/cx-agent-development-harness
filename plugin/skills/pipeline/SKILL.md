@@ -96,8 +96,12 @@ credentials, and constraints. In edit mode the user has copied the agent into
    - **(b) Deploy to this project, then evaluate** (max 3 rounds). Warn that this
      publishes the agent to that project's live Manager. Only after the user confirms
      in that same turn: `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/deploy.py" --target <slug>`.
+     Then assign it to the Manager (`weni eval` only reaches assigned agents) with
+     `weni:platform` (`assign <slug>`); its Finish question is the confirmation. `--check` must print
+     `EVAL_READY` before the eval; ask before starting it.
    - **(c) Pause to switch to a test project** (`.venv/bin/weni project use <uuid>`), then ask again.
-   - If `--check` printed `EVAL_READY` (already deployed and current), offer to run it directly.
+   - If `--check` printed `EVAL_READY` (already deployed, current and assigned), offer to run it directly.
+   - `EVAL_NOT_ASSIGNED` → assign with `weni:platform`. Never evaluate in that state.
    - If the user says the current local version is already deployed outside the harness:
      `deploy.py --target <slug> --record-only`.
    - If `deploy.py` comes back denied by permissions (auto mode classifier or the
@@ -113,6 +117,7 @@ credentials, and constraints. In edit mode the user has copied the agent into
    3. `EVAL_FAIL` → dispatch the tester (Mode B, triage) and show the user its table.
    4. `NOT_HANDLED_BY_TARGET` → `run_eval.py --run-dir <RUN_DIR> --void-last "<reason>"`
       (the round does not count), send nothing to the implementer, and ask the user.
+      Never edit the Manager: suggest the routing change for the user to make.
    5. `REAL_BUG` / `INSTRUCTION_GAP` → implementer → validate → affected tool tests →
       the deployment is now stale (`EVAL_STALE_DEPLOYMENT`): ask again before
       redeploying with `deploy.py` → next round. `FLAKY` → re-run with
@@ -122,6 +127,10 @@ credentials, and constraints. In edit mode the user has copied the agent into
 
    The gate passes on `EVAL_PASS`, when the user skips the eval, or when no
    `REAL_BUG`/`INSTRUCTION_GAP` remains and the user accepted the remaining failures.
+
+   **Closing phase 3.** Only if `.harness/deployments.json` records the assignment
+   `by: harness` with this run's `run_id`, ask whether to keep <name> active or
+   deactivate it (`weni:platform unassign <slug>`; it stays deployed).
 
 **4 Review.** On `REJECT`, loop back to phase 2 with the findings, then validate and
 test again before re-review.
@@ -152,7 +161,10 @@ python3 "${CLAUDE_PLUGIN_ROOT}/scripts/update_state.py" --latest --focus "..." -
   the user as described in the eval step. Deploying is an optional step of
   the eval; the pipeline itself ends at Docs.
 - Never run `run_eval.py` without the user's confirmation for that eval loop, and
-  never against an agent that is not deployed and current (the script refuses).
+  never unless `--check` printed `EVAL_READY` (deployed, current and assigned).
+- Never click Finish or Remove agent without the user's confirmation in that same
+  turn, and never chain an eval after it without asking. Only you use Chrome, only through
+  `weni:platform`.
 - Never advance a phase whose gate has not passed.
 - Never relax, delete, or weaken an eval test without the user's approval.
 - Edit in place at the project root. Never create worktrees or copy the project
